@@ -8,6 +8,14 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "pandas (>=2.2.3,<3.0.0)",
+    "pretty-midi (>=0.2.10,<0.3.0)",
+    "pathlib (>=1.0.1,<2.0.0)"
+]
+
+[tool.poetry]
+packages = [
+    { include = "pysrc", from = "src" }
 ]
 
 
