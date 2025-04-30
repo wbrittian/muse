@@ -1,4 +1,4 @@
 class Muse:
-    pass
+    tokenfile_path = "../../../data/processed_data/tokens.json"
 
 print("hello")
