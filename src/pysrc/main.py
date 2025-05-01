@@ -4,4 +4,4 @@ class Muse:
     tokenfile_path = "../../../data/processed_data/tokens.json"
 
 loader = DataLoader()
-loader._load_data("data/raw_data/")
+loader.load("data/")

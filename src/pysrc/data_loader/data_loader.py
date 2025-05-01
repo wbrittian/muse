@@ -1,43 +1,68 @@
-from os import path
 from json import load
 from pandas import read_csv
 from pathlib import Path
+from typing import Any
 
 from pysrc.data_loader.generate_tokens import generate_tokens
-from pysrc.data_loader.generate_melody import generate_melody
-from pysrc.data_loader.melody import Melody
+from pysrc.data_loader.convert_to_tokens import convert_to_tokens
+from pysrc.data_loader.collect_features import collect_features
 
 class DataLoader:
-    def __init__(self) -> None:
-        self.melody_names = []
-        self.melody_data: list[Melody] = []
-        self.token_data: list[list[int]] = []
+    def __init__(self, base_path: str) -> None:
+        self.base_path = base_path
 
-        self._id2tok: dict = {}
-        self._tok2id: dict = {}
+        self.melody_data: list[dict[str, Any]] = None
+        self.tokenized_data: list[list[int]] = None
+
+        self._id2tok: dict = None
+        self._tok2id: dict = None
 
     def _load_data(self, base_path: str) -> None:
         melody_raw = read_csv(base_path + "metadata/bimmuda_per_melody_metadata.csv")
         song_raw = read_csv(base_path + "metadata/bimmuda_per_song_metadata.csv")
 
         melody_metadata = melody_raw.set_index(melody_raw.columns[0]).to_dict(orient="index")
-        song_metadata = song_raw.set_index(song_raw.columns[0]).to_dict(orient="index")
+
+        song_raw["id"] = song_raw["Year"].astype(str) + "_0" + song_raw["Position"].astype(str)
+        song_metadata = (
+            song_raw
+            .groupby("id")
+            .apply(lambda g: g.to_dict(orient="records"))
+            .to_dict()
+        )
 
         root = Path(base_path + "bimmuda_dataset")
         for midfile in root.rglob('*.mid'):
             if 'full' not in midfile.stem:
-                self.melody_data.append(generate_melody(midfile, melody_metadata, song_metadata))
+                row = collect_features(midfile, melody_metadata, song_metadata)
+                if row is not None:
+                    self.melody_data.append(row)
+
         
 
     def _load_tokens(self, path: str) -> None:
         if path.exists(path):
             # load token data from JSON
             with open(path) as f:
-                self._id2tok = load(f)
-            self._tok2id = {v:k for k,v in self._id2tok.items()}
+                tokens = load(f)
         else:
-            # generate from loaded data
+            self._load_data(self.base_path + "raw_data/")
             tokens = generate_tokens()
 
-    def _tokenize(self) -> None:
-        pass
+        self._id2tok = tokens
+        self._tok2id = {v:k for k,v in self._id2tok.items()}
+
+
+    def _get_data(self, path: str) -> None:
+        if path.exists(path):
+            with open(path) as f:
+                self.tokenized_data = load(f)
+        else:
+            if self.melody_data is None:
+                self._load_data(self.base_path + "raw_data/")
+            self.tokenized_data = convert_to_tokens(self.melody_data)
+
+
+    def load(self) -> None:
+        self._load_tokens(self.base_path + "processed_data/tokens/token_map.json")
+        self._get_data(self.base_path + "processed_data/tokens/tokenized_data.json")
