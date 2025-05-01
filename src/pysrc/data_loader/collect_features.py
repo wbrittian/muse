@@ -50,13 +50,13 @@ def collect_features(
     era = str((int(key[:4]) // 10) * 10) + "s"
 
     return {
-        "bpm": midi_data.estimate_tempo(),
-        "time_signature": ts,
-        "num_bars": num_bars,
-        "first_note": first_note,
-        "last_note": last_note,
-        "key": song_key,
-        "genre": genre,
-        "era": era,
+        "BPM": midi_data.estimate_tempo(),
+        "TS": ts,
+        "BARS": num_bars,
+        "FIRST": first_note,
+        "LAST": last_note,
+        "KEY": song_key,
+        "GENRE": genre,
+        "ERA": era,
         "midi": midi_data
     }

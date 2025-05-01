@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from pysrc.data_loader.generate_tokens import generate_tokens
-from pysrc.data_loader.convert_to_tokens import convert_to_tokens
+from pysrc.data_loader.tokenizer import Tokenizer
 from pysrc.data_loader.collect_features import collect_features
 
 class DataLoader:
@@ -60,7 +60,8 @@ class DataLoader:
         else:
             if self.melody_data is None:
                 self._load_data(self.base_path + "raw_data/")
-            self.tokenized_data = convert_to_tokens(self.melody_data)
+            tokenizer = Tokenizer(self._tok2id, self.melody_data)
+            self.tokenized_data = tokenizer.convert_to_tokens()
 
 
     def load(self) -> None:
