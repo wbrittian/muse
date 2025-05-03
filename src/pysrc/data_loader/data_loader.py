@@ -8,18 +8,16 @@ from pysrc.data_loader.tokenizer import Tokenizer
 from pysrc.data_loader.collect_features import collect_features
 
 class DataLoader:
-    def __init__(self, base_path: str) -> None:
-        self.base_path = base_path
-
+    def __init__(self) -> None:
         self.melody_data: list[dict[str, Any]] = []
         self.tokenized_data: list[list[int]] = None
 
         self._id2tok: dict = None
         self._tok2id: dict = None
 
-    def _load_data(self, subpath: str) -> None:
-        melody_raw = read_csv(self.base_path + subpath + "metadata/bimmuda_per_melody_metadata.csv")
-        song_raw = read_csv(self.base_path + subpath + "metadata/bimmuda_per_song_metadata.csv")
+    def _load_data(self, base_path: Path) -> None:
+        melody_raw = read_csv(base_path / "metadata/bimmuda_per_melody_metadata.csv")
+        song_raw = read_csv(base_path / "metadata/bimmuda_per_song_metadata.csv")
 
         melody_metadata = melody_raw.set_index(melody_raw.columns[0]).to_dict(orient="index")
 
@@ -31,7 +29,7 @@ class DataLoader:
             .to_dict()
         )
 
-        root = Path(self.base_path + subpath + "bimmuda_dataset")
+        root = Path(base_path + "bimmuda_dataset")
         for midfile in root.rglob('*.mid'):
             if 'full' not in midfile.stem:
                 row = collect_features(midfile, melody_metadata, song_metadata)
@@ -46,7 +44,7 @@ class DataLoader:
             with open(path) as f:
                 tokens = load(f)
         else:
-            self._load_data("raw_data/")
+            self._load_data("data/")
             tokens = generate_tokens(self.melody_data)
 
         self._id2tok = tokens
@@ -54,17 +52,17 @@ class DataLoader:
 
 
     def _get_data(self, path: Path) -> None:
-        if Path.exists(path):
-            with open(path) as f:
+        if Path.exists(path / "processed_data.json"):
+            with open(path / "processed_data.json") as f:
                 self.tokenized_data = load(f)
         else:
             if self.melody_data is None:
-                self._load_data(self.base_path + "raw_data/")
+                self._load_data(path)
             tokenizer = Tokenizer(self._tok2id, self.melody_data)
             self.tokenized_data = tokenizer.convert_to_tokens()
             #print(self.tokenized_data)
 
 
     def load(self) -> None:
-        self._load_tokens(Path(self.base_path + "processed_data/tokens/token_map.json"))
-        self._get_data(Path(self.base_path + "processed_data/tokens/tokenized_data.json"))
+        self._load_tokens(Path("model/tokens.json"))
+        self._get_data(Path("data/"))

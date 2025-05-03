@@ -1,4 +1,5 @@
 from typing import Any
+from json import dump
 
 def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
     # collect unique types
@@ -87,5 +88,8 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
     id2tok = dict(sorted(id2tok.items()))
     for idx, tok in id2tok.items():
         print(f"{idx}: {tok}")
+
+    with open("model/tokens.json", "w") as f:
+        dump(id2tok, f, indent=4)
 
     return id2tok

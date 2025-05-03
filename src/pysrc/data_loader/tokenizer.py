@@ -55,7 +55,6 @@ class Tokenizer:
                 dur_divs -= 48
             raw_tokens.extend([f"<NOTE_{dur_divs}>", f"<PITCH_{pitch_diff:+d}>"])
             
-            # compute rest in divisions
             offset_div = start_div - prev_end_div
             rest_tokens = []
             if offset_div > 0:
