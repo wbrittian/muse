@@ -9,58 +9,66 @@ class Tokenizer:
         self._melody_data = melody_data
 
     def _feature_to_token(self, key: str, val: Any) -> int:
-        raw_token = "<" + key + "_" + val + ">"
+        raw_token = f"<{key}_{val}>"
         ###
         if raw_token not in self._tok2id:
             print("no token match")
         ###
         return self._tok2id[raw_token]
 
-    # note: validate this is a good format
-    def _midi_to_tokens(self, pm: PrettyMIDI) -> list[int]:
-        beat_times = pm.get_beats()
-        sec_per_div = np.diff(beat_times).mean() / 12
+    def _quantize_notes(self, pm: PrettyMIDI, qdiv: int):
+        beat_times = pm.get_beats() 
+        end_time   = pm.get_end_time()
+
+        beat_times = np.append(beat_times, end_time)
+
+        def time_to_division(t):
+            i = np.searchsorted(beat_times, t, side='right') - 1
+            i = min(max(i, 0), len(beat_times) - 2)
+
+            sec_per_beat = beat_times[i+1] - beat_times[i]
+            frac = (t - beat_times[i]) / sec_per_beat
+            return int(round(i * qdiv + frac * qdiv))
 
         notes = []
         for inst in pm.instruments:
             for n in inst.notes:
-                q_start = int(np.round(n.start / sec_per_div))
-                q_end   = int(np.round(n.end   / sec_per_div))
-                dur_divs = max(1, q_end - q_start)
+                start_div = time_to_division(n.start)
+                end_div   = time_to_division(n.end)
+                dur_divs  = max(1, end_div - start_div)
+                notes.append((start_div, n.pitch, dur_divs))
+        return sorted(notes, key=lambda x: (x[0], x[1]))
 
-                dur_beats = dur_divs / 12
-
-                notes.append((q_start, n.pitch, dur_beats))
-
-        notes.sort(key=lambda x: (x[0], x[1]))
-
+    def _midi_to_tokens(self, pm: PrettyMIDI) -> list[int]:
+        qdiv = 12
+        notes = self._quantize_notes(pm, qdiv)
         base_pitch = notes[0][1]
+
         tokens = []
-        prev_end = 0
-        seq_end = 0
-        seq_dur = 0
-        for start, pitch, dur in notes:
+        prev_end_div  = 0
+        for start_div, pitch, dur_divs in notes:
+            raw_tokens = []
+
             pitch_diff = pitch - base_pitch
-
-            raw_tokens = [
-                "<NOTE_" + round(dur, 2) + ">",
-                "<PITCH_" + str(pitch_diff) + ">"
-            ]
-
-            offset = start - prev_end
-            if offset != 0:
-                raw_tokens.insert(0, "<REST_" + offset + ">")
-
-            tokens = tokens + raw_tokens
-            seq_end = start + dur
-            seq_dur += offset + dur
+            while dur_divs > 48:
+                raw_tokens.extend(["<NOTE_48>", f"<PITCH_{pitch_diff:+d}>"])
+                dur_divs -= 48
+            raw_tokens.extend([f"<NOTE_{dur_divs}>", f"<PITCH_{pitch_diff:+d}>"])
             
-        diff = seq_dur - seq_end
-        if diff > 0:
-            tokens.append("<REST_" + diff + ">")
+            # compute rest in divisions
+            offset_div = start_div - prev_end_div
+            rest_tokens = []
+            if offset_div > 0:
+                while offset_div > 12:
+                    rest_tokens.append("<REST_12>")
+                    offset_div -= 12
+                rest_tokens.append(f"<REST_{offset_div}>")
+            raw_tokens = rest_tokens + raw_tokens
 
-        converted_tokens = [self._tok2id[tok] for tok in tokens]
-        return converted_tokens
+            tokens.extend(raw_tokens)
+            prev_end_div = start_div + dur_divs
+
+        return [self._tok2id[t] for t in tokens]
 
 
     def convert_to_tokens(self) -> list[list[int]]:

@@ -14,6 +14,14 @@ def collect_features(
     if key.endswith("misc"):
         return None
 
+    bpm = midi_data.estimate_tempo()
+    if bpm < 70:
+        bpm_range = "60"
+    elif bpm < 180:
+        bpm_range = str(int((bpm // 10) * 10))
+    else:
+        bpm_range = "180"
+
     if key in melody_metadata:
         melody = melody_metadata[key]
 
@@ -44,15 +52,16 @@ def collect_features(
     else:
         genre = "Other"
 
+    genre = genre.rstrip()
     if genre in {"Country", "Folk", "EDM/Dance", "Jazz", "Reggae", "Latin"}:
         genre = "Other"
 
     era = str((int(key[:4]) // 10) * 10) + "s"
 
     return {
-        "BPM": midi_data.estimate_tempo(),
+        "BPM": bpm_range,
         "TS": ts,
-        "BARS": num_bars,
+        "BARS": int(num_bars),
         "FIRST": first_note,
         "LAST": last_note,
         "KEY": song_key,

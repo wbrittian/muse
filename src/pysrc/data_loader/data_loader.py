@@ -11,7 +11,7 @@ class DataLoader:
     def __init__(self, base_path: str) -> None:
         self.base_path = base_path
 
-        self.melody_data: list[dict[str, Any]] = None
+        self.melody_data: list[dict[str, Any]] = []
         self.tokenized_data: list[list[int]] = None
 
         self._id2tok: dict = None
@@ -31,7 +31,7 @@ class DataLoader:
             .to_dict()
         )
 
-        root = Path(self.base_path + "bimmuda_dataset")
+        root = Path(self.base_path + subpath + "bimmuda_dataset")
         for midfile in root.rglob('*.mid'):
             if 'full' not in midfile.stem:
                 row = collect_features(midfile, melody_metadata, song_metadata)
@@ -47,7 +47,7 @@ class DataLoader:
                 tokens = load(f)
         else:
             self._load_data("raw_data/")
-            tokens = generate_tokens()
+            tokens = generate_tokens(self.melody_data)
 
         self._id2tok = tokens
         self._tok2id = {v: k for k,v in self._id2tok.items()}
@@ -62,7 +62,7 @@ class DataLoader:
                 self._load_data(self.base_path + "raw_data/")
             tokenizer = Tokenizer(self._tok2id, self.melody_data)
             self.tokenized_data = tokenizer.convert_to_tokens()
-            print(self.tokenized_data)
+            #print(self.tokenized_data)
 
 
     def load(self) -> None:
