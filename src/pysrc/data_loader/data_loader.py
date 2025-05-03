@@ -17,9 +17,9 @@ class DataLoader:
         self._id2tok: dict = None
         self._tok2id: dict = None
 
-    def _load_data(self, base_path: str) -> None:
-        melody_raw = read_csv(base_path + "metadata/bimmuda_per_melody_metadata.csv")
-        song_raw = read_csv(base_path + "metadata/bimmuda_per_song_metadata.csv")
+    def _load_data(self, subpath: str) -> None:
+        melody_raw = read_csv(self.base_path + subpath + "metadata/bimmuda_per_melody_metadata.csv")
+        song_raw = read_csv(self.base_path + subpath + "metadata/bimmuda_per_song_metadata.csv")
 
         melody_metadata = melody_raw.set_index(melody_raw.columns[0]).to_dict(orient="index")
 
@@ -31,7 +31,7 @@ class DataLoader:
             .to_dict()
         )
 
-        root = Path(base_path + "bimmuda_dataset")
+        root = Path(self.base_path + "bimmuda_dataset")
         for midfile in root.rglob('*.mid'):
             if 'full' not in midfile.stem:
                 row = collect_features(midfile, melody_metadata, song_metadata)
@@ -40,21 +40,21 @@ class DataLoader:
 
         
 
-    def _load_tokens(self, path: str) -> None:
-        if path.exists(path):
+    def _load_tokens(self, path: Path) -> None:
+        if Path.exists(path):
             # load token data from JSON
             with open(path) as f:
                 tokens = load(f)
         else:
-            self._load_data(self.base_path + "raw_data/")
+            self._load_data("raw_data/")
             tokens = generate_tokens()
 
         self._id2tok = tokens
-        self._tok2id = {v:k for k,v in self._id2tok.items()}
+        self._tok2id = {v: k for k,v in self._id2tok.items()}
 
 
-    def _get_data(self, path: str) -> None:
-        if path.exists(path):
+    def _get_data(self, path: Path) -> None:
+        if Path.exists(path):
             with open(path) as f:
                 self.tokenized_data = load(f)
         else:
@@ -62,8 +62,9 @@ class DataLoader:
                 self._load_data(self.base_path + "raw_data/")
             tokenizer = Tokenizer(self._tok2id, self.melody_data)
             self.tokenized_data = tokenizer.convert_to_tokens()
+            print(self.tokenized_data)
 
 
     def load(self) -> None:
-        self._load_tokens(self.base_path + "processed_data/tokens/token_map.json")
-        self._get_data(self.base_path + "processed_data/tokens/tokenized_data.json")
+        self._load_tokens(Path(self.base_path + "processed_data/tokens/token_map.json"))
+        self._get_data(Path(self.base_path + "processed_data/tokens/tokenized_data.json"))
