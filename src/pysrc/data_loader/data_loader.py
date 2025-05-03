@@ -1,4 +1,4 @@
-from json import load
+from json import load, dump
 from pandas import read_csv
 from pathlib import Path
 from typing import Any
@@ -29,7 +29,7 @@ class DataLoader:
             .to_dict()
         )
 
-        root = Path(base_path + "bimmuda_dataset")
+        root = Path(base_path / "bimmuda_dataset")
         for midfile in root.rglob('*.mid'):
             if 'full' not in midfile.stem:
                 row = collect_features(midfile, melody_metadata, song_metadata)
@@ -43,6 +43,7 @@ class DataLoader:
             # load token data from JSON
             with open(path) as f:
                 tokens = load(f)
+            tokens = {int(k): v for k, v in tokens.items()}
         else:
             self._load_data("data/")
             tokens = generate_tokens(self.melody_data)
@@ -52,15 +53,17 @@ class DataLoader:
 
 
     def _get_data(self, path: Path) -> None:
-        if Path.exists(path / "processed_data.json"):
-            with open(path / "processed_data.json") as f:
+        if Path.exists(path / "tokenized_data.json"):
+            with open(path / "tokenized_data.json") as f:
                 self.tokenized_data = load(f)
         else:
-            if self.melody_data is None:
+            if self.melody_data == []:
                 self._load_data(path)
             tokenizer = Tokenizer(self._tok2id, self.melody_data)
             self.tokenized_data = tokenizer.convert_to_tokens()
-            #print(self.tokenized_data)
+
+            with open("data/tokenized_data.json", "w") as f:
+                dump(self.tokenized_data, f)
 
 
     def load(self) -> None:
