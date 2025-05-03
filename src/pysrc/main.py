@@ -1,7 +1,7 @@
-from pysrc.data_loader.data_loader import DataLoader
+from pysrc.data_client.data_client import DataClient
 
 class Muse:
     tokenfile_path = "../../../data/processed_data/tokens.json"
 
-loader = DataLoader()
-loader.load()
+data_client = DataClient()
+data_client.load()

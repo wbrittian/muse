@@ -3,11 +3,11 @@ from pandas import read_csv
 from pathlib import Path
 from typing import Any
 
-from pysrc.data_loader.generate_tokens import generate_tokens
-from pysrc.data_loader.tokenizer import Tokenizer
-from pysrc.data_loader.collect_features import collect_features
+from pysrc.data_client.generate_tokens import generate_tokens
+from pysrc.data_client.tokenizer import Tokenizer
+from pysrc.data_client.collect_features import collect_features
 
-class DataLoader:
+class DataClient:
     def __init__(self) -> None:
         self.melody_data: list[dict[str, Any]] = []
         self.tokenized_data: list[list[int]] = None
