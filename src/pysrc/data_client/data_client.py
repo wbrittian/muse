@@ -2,6 +2,7 @@ from json import load, dump
 from pandas import read_csv
 from pathlib import Path
 from typing import Any
+from torch import tensor
 
 from pysrc.data_client.generate_tokens import generate_tokens
 from pysrc.data_client.tokenizer import Tokenizer
@@ -69,3 +70,13 @@ class DataClient:
     def load(self) -> None:
         self._load_tokens(Path("model/tokens.json"))
         self._get_data(Path("data/"))
+
+    def V(self) -> int:
+        return len(self._id2tok.keys())
+
+    def len_data(self) -> int:
+        return len(self.tokenized_data)
+
+    def get_item(self, i: int)-> tuple[tensor, tensor]:
+        seq = self.tokenized_data[i]
+        return tensor(seq[:-1]), tensor(seq[1:])
