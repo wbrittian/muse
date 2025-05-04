@@ -81,7 +81,7 @@ class Tokenizer:
                     tokens.append(self._feature_to_token(feature, value))
 
             stream = self._midi_to_tokens(melody["midi"])
-            tokens = tokens + stream + [1]
+            tokens = tokens + stream
 
             tokenized_data.append(tokens)
 

@@ -12,4 +12,4 @@ data_client.load()
 V = data_client.V()
 model = PytorchModel(V)
 
-optimizer = AdamW()
+# optimizer = AdamW()

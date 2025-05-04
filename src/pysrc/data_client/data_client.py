@@ -52,6 +52,14 @@ class DataClient:
         self._id2tok = tokens
         self._tok2id = {v: k for k,v in self._id2tok.items()}
 
+    def _pad_data(self) -> None:
+        seqlen = max(len(seq) for seq in self.tokenized_data)
+
+        for i in range(len(self.tokenized_data)):
+            seq = self.tokenized_data[i]
+            to_add = seqlen - len(seq)
+            self.tokenized_data[i] = seq + [2 for _ in range(to_add)] + [1]
+
 
     def _get_data(self, path: Path) -> None:
         if Path.exists(path / "tokenized_data.json"):
@@ -62,6 +70,7 @@ class DataClient:
                 self._load_data(path)
             tokenizer = Tokenizer(self._tok2id, self.melody_data)
             self.tokenized_data = tokenizer.convert_to_tokens()
+            self._pad_data()
 
             with open("data/tokenized_data.json", "w") as f:
                 dump(self.tokenized_data, f)
