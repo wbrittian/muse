@@ -80,7 +80,7 @@ class DataClient:
         self._load_tokens(Path("model/tokens.json"))
         self._get_data(Path("data/"))
 
-    def V(self) -> int:
+    def vocab_size(self) -> int:
         return len(self._id2tok.keys())
 
     def len_data(self) -> int:
