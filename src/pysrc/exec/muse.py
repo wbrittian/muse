@@ -1,5 +1,5 @@
-from torch.optim import AdamW
 from pretty_midi import PrettyMIDI
+from pathlib import Path
 
 from pysrc.data_client.data_client import DataClient
 from pysrc.model.pytorch_model import PytorchModel
@@ -9,6 +9,12 @@ class Muse:
     def __init__(self) -> None:
         self.data_client = DataClient()
         self.museformer = None
+
+        self.config_path = Path("data/model/config.json")
+        self.model_path = Path("data/model/museformer.pt")
+
+    def _load_model(self) -> None:
+        pass
 
     def _train_model(self) -> None:
         self.data_client.load()
@@ -24,6 +30,12 @@ class Muse:
 
     def _send_to_fl(self, midi: PrettyMIDI) -> None:
         pass
+
+    def load(self) -> None:
+        if Path.exists(self.config_path) and Path.exists(self.model_path):
+            self._load_model()
+        else:
+            self._train_model()
 
     def run(self) -> None:
         while True:
