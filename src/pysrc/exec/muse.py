@@ -41,7 +41,7 @@ class Muse:
         train_model(self.museformer, self.data_client, self.system, str(self.model_path))
         print("model loaded")
 
-    def _to_tokens(self, input_txt: str) -> list[int]:
+    def _get_input_tokens(self, input_txt: str) -> list[int]:
         pass
 
     def _generate(self, input_seq: list[int]) -> PrettyMIDI:
