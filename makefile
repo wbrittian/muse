@@ -5,7 +5,7 @@ PY_SRC = src/pysrc
 CPP_SRC = src/cppsrc
 
 run: build
-	poetry run python3 $(PY_SRC)/main.py
+	poetry run python3 -m pysrc.main
 
 build: cppinstall
 	cd build && cmake .. -DCMAKE_TOOLCHAIN_FILE=$(RELEASE_TYPE)/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=$(RELEASE_TYPE) -G Ninja
