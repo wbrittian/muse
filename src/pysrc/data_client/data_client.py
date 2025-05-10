@@ -1,14 +1,15 @@
+from torch.utils.data import Dataset
+from torch import LongTensor, tensor, long
 from json import load, dump
 from pandas import read_csv
 from pathlib import Path
 from typing import Any
-from torch import tensor
 
 from pysrc.data_client.generate_tokens import generate_tokens
 from pysrc.data_client.tokenizer import Tokenizer
 from pysrc.data_client.collect_features import collect_features
 
-class DataClient:
+class DataClient(Dataset):
     def __init__(self) -> None:
         self.melody_data: list[dict[str, Any]] = []
         self.tokenized_data: list[list[int]] = None
@@ -83,9 +84,11 @@ class DataClient:
     def vocab_size(self) -> int:
         return len(self._id2tok.keys())
 
-    def len_data(self) -> int:
+    def __len__(self) -> int:
         return len(self.tokenized_data)
 
-    def get_item(self, i: int)-> tuple[tensor, tensor]:
+    def __getitem__(self, i: int)-> tuple[LongTensor, LongTensor]:
         seq = self.tokenized_data[i]
-        return tensor(seq[:-1]), tensor(seq[1:])
+        inp = tensor(seq[:-1]).to(dtype=long)
+        tgt = tensor(seq[1:]).to(dtype=long)
+        return inp, tgt
