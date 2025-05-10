@@ -18,7 +18,10 @@ class Muse:
 
     def _train_model(self) -> None:
         self.data_client.load()
-        self.museformer = PytorchModel(self.data_client.vocab_size())
+        self.museformer = PytorchModel(
+            self.data_client.vocab_size(), 
+            self.data_client.max_seq_len()
+        )
         
         train_model(self.museformer, self.data_client)
 
@@ -35,9 +38,13 @@ class Muse:
         if Path.exists(self.config_path) and Path.exists(self.model_path):
             self._load_model()
         else:
+            print("no config found, training new model...")
             self._train_model()
+        print("model loaded")
 
     def run(self) -> None:
+        self.load()
+
         while True:
             cmd = input("> ")
 

@@ -83,6 +83,9 @@ class DataClient(Dataset):
 
     def vocab_size(self) -> int:
         return len(self._id2tok.keys())
+    
+    def max_seq_len(self) -> int:
+        return len(self.tokenized_data[0])
 
     def __len__(self) -> int:
         return len(self.tokenized_data)

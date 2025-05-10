@@ -5,32 +5,31 @@ class PytorchModel(nn.Module):
     def __init__(
             self,
             vocab_size,
+            max_seq_len,
             d_model=128,
             num_heads=4,
             num_layers=2,
             dim_ff=512,
-            p_drop=.1
+            p_drop=.1,
     ):
         super().__init__()
         self.token_embed = nn.Embedding(vocab_size, d_model)
-        self.pos_embed   = nn.Embedding(512, d_model)   # max seq length
+        self.pos_embed   = nn.Parameter(torch.zeros(1, max_seq_len, d_model))
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
             nhead=num_heads,
             dim_feedforward=dim_ff,
             dropout=p_drop,
-            activation='gelu'
+            activation='gelu',
+            batch_first=True
         )
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         self.output_proj = nn.Linear(d_model, vocab_size)
 
     def forward(self, x: torch.LongTensor):
-        seq_len = x.size(1)
-        tok = self.token_emb(x)
-        tok = tok + self.pos_emb[:, :seq_len, :]
+        tok = self.token_embed(x)
+        tok += self.pos_embed[:, :tok.size(1), :]
 
-        tok = tok.transpose(0, 1)
-        enc = self.encoder(tok)
-        enc = enc.transpose(0, 1)
+        enc = self.encoder(tok).transpose(0, 1)
         logits = self.output_proj(enc)
         return logits
