@@ -1,0 +1,7 @@
+{
+  "d_model": 128,
+  "num_heads": 4,
+  "num_layers": 2,
+  "dim_ff": 512,
+  "p_drop": 0.1
+}

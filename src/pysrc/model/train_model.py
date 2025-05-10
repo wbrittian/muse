@@ -7,8 +7,12 @@ import torch.cuda as cuda
 from pysrc.model.pytorch_model import PytorchModel
 from pysrc.data_client.data_client import DataClient
 
-def train_model(museformer: PytorchModel, data_client: DataClient, num_epochs=10):
-    system = device("cuda" if cuda.is_available() else "cpu")
+def train_model(
+        museformer: PytorchModel, 
+        data_client: DataClient, system: 
+        device, save_path: str, 
+        num_epochs=10
+):
     museformer.to(system)
 
     optimizer = AdamW(museformer.parameters(), lr=1e-4, weight_decay=1e-2)
@@ -35,3 +39,5 @@ def train_model(museformer: PytorchModel, data_client: DataClient, num_epochs=10
     for epoch in range(1, num_epochs+1):
         avg_loss = train_epoch()
         print(f"loss for epoch {epoch:2d}: {avg_loss:.4f}")
+
+    museformer.save_state(save_path)
