@@ -1,3 +1,5 @@
+from torch.utils.data import Dataset
+from torch import LongTensor, tensor, long
 from json import load, dump
 from pandas import read_csv
 from pathlib import Path
@@ -7,7 +9,7 @@ from pysrc.data_client.generate_tokens import generate_tokens
 from pysrc.data_client.tokenizer import Tokenizer
 from pysrc.data_client.collect_features import collect_features
 
-class DataClient:
+class DataClient(Dataset):
     def __init__(self) -> None:
         self.melody_data: list[dict[str, Any]] = []
         self.tokenized_data: list[list[int]] = None
@@ -51,6 +53,14 @@ class DataClient:
         self._id2tok = tokens
         self._tok2id = {v: k for k,v in self._id2tok.items()}
 
+    def _pad_data(self) -> None:
+        seqlen = max(len(seq) for seq in self.tokenized_data)
+
+        for i in range(len(self.tokenized_data)):
+            seq = self.tokenized_data[i]
+            to_add = seqlen - len(seq)
+            self.tokenized_data[i] = seq + [2 for _ in range(to_add)] + [1]
+
 
     def _get_data(self, path: Path) -> None:
         if Path.exists(path / "tokenized_data.json"):
@@ -61,6 +71,7 @@ class DataClient:
                 self._load_data(path)
             tokenizer = Tokenizer(self._tok2id, self.melody_data)
             self.tokenized_data = tokenizer.convert_to_tokens()
+            self._pad_data()
 
             with open("data/tokenized_data.json", "w") as f:
                 dump(self.tokenized_data, f)
@@ -69,3 +80,18 @@ class DataClient:
     def load(self) -> None:
         self._load_tokens(Path("model/tokens.json"))
         self._get_data(Path("data/"))
+
+    def vocab_size(self) -> int:
+        return len(self._id2tok.keys())
+    
+    def max_seq_len(self) -> int:
+        return len(self.tokenized_data[0])
+
+    def __len__(self) -> int:
+        return len(self.tokenized_data)
+
+    def __getitem__(self, i: int)-> tuple[LongTensor, LongTensor]:
+        seq = self.tokenized_data[i]
+        inp = tensor(seq[:-1]).to(dtype=long)
+        tgt = tensor(seq[1:]).to(dtype=long)
+        return inp, tgt

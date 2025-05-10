@@ -1,7 +1,5 @@
-from pysrc.data_client.data_client import DataClient
+from pysrc.exec.muse import Muse
 
-class Muse:
-    tokenfile_path = "../../../data/processed_data/tokens.json"
-
-data_client = DataClient()
-data_client.load()
+if __name__ == "__main__":
+    muse = Muse()
+    muse.run()

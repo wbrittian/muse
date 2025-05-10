@@ -19,8 +19,6 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
         if era not in eras:
             eras.add(era)
     
-
-
     keys = sorted(keys, key=lambda x: x[0])
     eras = sorted(eras, key=lambda x: int(x[:4]))
 
