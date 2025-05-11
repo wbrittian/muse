@@ -1,7 +1,7 @@
 from typing import Any
 from pretty_midi import PrettyMIDI
 from pathlib import Path
-from torch import device
+from torch import device, triu, LongTensor, ones, argmax
 import torch.cuda as cuda
 
 from pysrc.data_client.data_client import DataClient
@@ -9,7 +9,7 @@ from pysrc.data_client.tokenizer import feature_to_token
 from pysrc.model.pytorch_model import PytorchModel
 from pysrc.model.train_model import train_model
 from pysrc.exec.params import get_params, load_params
-from pysrc.exec.utils import get_input
+from pysrc.exec.utils import get_input, tokens_to_midi
 
 class Muse:
     def __init__(self) -> None:
@@ -57,7 +57,7 @@ class Muse:
             "era: 1950s-2020s"
         )
 
-        seq = []
+        seq = [0]
         seq.append(get_input("bpm (120) > ", "120", [str(i) for i in range(60, 121, 10)]))
         seq.append(get_input("ts (4/4) > ", "4/4", ["4/4", "3/4", "6/8", "12/8", "9/8"]))
         seq.append(get_input("bars (16) > ", "16", [str(i) for i in range(2, 81)]))
@@ -77,19 +77,19 @@ class Muse:
             "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"
         ]))
 
-        match seq[6]:
+        match seq[7]:
             case "P":
-                seq[6] = "Pop"
+                seq[7] = "Pop"
             case "R":
-                seq[6] = "Rock"
+                seq[7] = "Rock"
             case "F":
-                seq[6] = "Funk/Soul"
+                seq[7] = "Funk/Soul"
             case "B":
-                seq[6] = "R&B"
+                seq[7] = "R&B"
             case "H":
-                seq[6] = "Hip-hop"
+                seq[7] = "Hip-hop"
             case "O":
-                seq[6] = "Other"
+                seq[7] = "Other"
 
         features = ["BPM", "TS", "BARS", "FIRST", "LAST", "KEY", "GENRE", "ERA"]
         tokens = []
@@ -99,8 +99,31 @@ class Muse:
 
         return tokens
 
-    def _generate(self, input_seq: list[int]) -> PrettyMIDI:
-        pass
+    def _generate(self, input_seq: list[int], max_tokens: int) -> PrettyMIDI:
+        self.museformer.eval()
+        seed_ids = LongTensor(input_seq).to(self.system)
+
+        output = input_seq
+        for _ in range(max_tokens):
+            cur = LongTensor([output]).to(self.system)
+            L = cur.size(1)
+
+            mask = triu(ones(L, L, device=self.system), diagonal=1).bool()
+
+            if "src_mask" in self.museformer.__code__.co_varnames:
+                logits = self.museformer(cur, src_mask=mask)
+            else:
+                logits = self.museformer(cur)
+            next_logits = logits[0, -1, :]
+
+            next_id = argmax(next_logits).item()
+            output.append(next_id)
+
+            if next_id == 1:
+                break
+
+        return tokens_to_midi(output[9:-1])
+
 
     def _send_to_fl(self, midi: PrettyMIDI) -> None:
         pass
@@ -121,7 +144,7 @@ class Muse:
                 case "generate" | "g":
                     input_seq = self._get_input_tokens()
 
-                    output_midi = self._generate(input_seq)
+                    output_midi = self._generate(input_seq, self.data_client.max_seq_len())
                     self._send_to_fl(output_midi)
                     
 
