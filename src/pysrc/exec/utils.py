@@ -1,5 +1,6 @@
 from typing import Any
 from pretty_midi import PrettyMIDI, Instrument, Note
+from datetime import datetime
 
 def get_input(prompt: str, default: Any, vals: list[Any]) -> Any:
     while True:
@@ -25,7 +26,7 @@ def tokens_to_events(tokens: list[str]) -> list[tuple[str, Any]]:
     return events
 
 def tokens_to_midi(tokens: list[str], tempo: float, base_pitch: int) -> PrettyMIDI:
-    pm = PrettyMIDI()
+    pm = PrettyMIDI(initial_tempo=tempo)
     inst = Instrument(program=0)
 
     events = tokens_to_events(tokens)
@@ -61,4 +62,9 @@ def tokens_to_midi(tokens: list[str], tempo: float, base_pitch: int) -> PrettyMI
         ))
 
     pm.instruments.append(inst)
+    pm.remove_invalid_notes()
+
+    time = datetime.now().strftime("%m_%d-%H_$M")
+    pm.write(f"output/muse_{time}.mid")
+
     return pm

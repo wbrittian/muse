@@ -1,8 +1,13 @@
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "True"
+
 from typing import Any
+from time import time, sleep
 from pretty_midi import PrettyMIDI
 from pathlib import Path
 from torch import device, triu, LongTensor, ones, argmax
 import torch.cuda as cuda
+import pygame.midi as midi
 
 from pysrc.data_client.data_client import DataClient
 from pysrc.data_client.tokenizer import feature_to_token
@@ -128,8 +133,38 @@ class Muse:
         return tokens_to_midi(output[9:-1], float(output[1][5:-1]), int(output[5][6:-1]))
 
 
-    def _send_to_fl(self, midi: PrettyMIDI) -> None:
-        pass
+    def _send_to_fl(self, pm: PrettyMIDI) -> None:
+        midi.init()
+        count = midi.get_count()
+        port = midi.get_default_output_id()
+        out = midi.Output(port, latency=0)
+
+        for pid in range(count):
+            _, name, _, _, _ = midi.get_device_info(pid)
+            if name.decode() == "IAC Driver MUSE":
+                port = pid
+
+        events = []
+        for inst in pm.instruments:
+            channel = inst.program
+            for note in inst.notes:
+                on_status = 0x90 | (channel & 0x0F)
+                events.append((note.start, on_status, note.pitch, note.velocity))
+                off_status = 0x80 | (channel & 0x0F)
+                events.append((note.end, off_status, note.pitch, 0))
+
+        events.sort(key=lambda e: e[0])
+        t0 = time()
+        for event_time, status, data1, data2 in events:
+            wait = event_time - (time() - t0)
+            print(wait)
+            if wait > 0:
+                sleep(wait)
+
+            out.write_short(status, data1, data2)
+
+        out.close()
+        midi.quit()
 
     def run(self) -> None:
         self.data_client.load()
@@ -152,6 +187,7 @@ class Muse:
                     ###
 
                     output_midi = self._generate(input_seq, self.data_client.max_seq_len())
+                    print("streaming to FL Studio...")
                     self._send_to_fl(output_midi)
                     
 

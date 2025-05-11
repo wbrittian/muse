@@ -83,11 +83,6 @@ class DataClient(Dataset):
         self._load_tokens(Path("model/tokens.json"))
         self._get_data(Path("data/"))
 
-        reported_max = self.max_seq_len()
-        actual_lens = [len(seq) for seq in self.tokenized_data]
-        print(f"reported max_seq_len: {reported_max}")
-        print(f"true max padded length: {max(actual_lens)}")
-
     def vocab_size(self) -> int:
         return len(self._id2tok.keys())
     
