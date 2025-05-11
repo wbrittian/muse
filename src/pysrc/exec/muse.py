@@ -122,7 +122,10 @@ class Muse:
             if next_id == 1:
                 break
 
-        return tokens_to_midi(output[9:-1])
+        id2tok = self.data_client.get_dict(reverse=True)
+        output = [id2tok[i] for i in output]
+
+        return tokens_to_midi(output[9:-1], float(output[1][5:-1]), int(output[5][6:-1]))
 
 
     def _send_to_fl(self, midi: PrettyMIDI) -> None:
@@ -143,6 +146,10 @@ class Muse:
             match cmd:
                 case "generate" | "g":
                     input_seq = self._get_input_tokens()
+
+                    ### REMOVE LATER
+                    input_seq = self.data_client.get_first()
+                    ###
 
                     output_midi = self._generate(input_seq, self.data_client.max_seq_len())
                     self._send_to_fl(output_midi)

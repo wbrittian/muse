@@ -94,8 +94,11 @@ class DataClient(Dataset):
     def max_seq_len(self) -> int:
         return len(self.tokenized_data[0])
     
-    def get_dict(self) -> dict[str, int]:
-        return self._tok2id
+    def get_dict(self, reverse=False) -> dict[str, int]:
+        if reverse:
+            return self._id2tok
+        else:
+            return self._tok2id
 
     def __len__(self) -> int:
         return len(self.tokenized_data)
@@ -105,3 +108,7 @@ class DataClient(Dataset):
         inp = tensor(seq[:-1]).to(dtype=long)
         tgt = tensor(seq[1:]).to(dtype=long)
         return inp, tgt
+    
+    # NOTE: REMOVE LATER
+    def get_first(self) -> list[int]:
+        return self.tokenized_data[0]
