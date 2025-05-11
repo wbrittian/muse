@@ -57,7 +57,7 @@ class Muse:
             "era: 1950s-2020s"
         )
 
-        seq = [0]
+        seq = []
         seq.append(get_input("bpm (120) > ", "120", [str(i) for i in range(60, 121, 10)]))
         seq.append(get_input("ts (4/4) > ", "4/4", ["4/4", "3/4", "6/8", "12/8", "9/8"]))
         seq.append(get_input("bars (16) > ", "16", [str(i) for i in range(2, 81)]))
@@ -77,19 +77,19 @@ class Muse:
             "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"
         ]))
 
-        match seq[7]:
+        match seq[6]:
             case "P":
-                seq[7] = "Pop"
+                seq[6] = "Pop"
             case "R":
-                seq[7] = "Rock"
+                seq[6] = "Rock"
             case "F":
-                seq[7] = "Funk/Soul"
+                seq[6] = "Funk/Soul"
             case "B":
-                seq[7] = "R&B"
+                seq[6] = "R&B"
             case "H":
-                seq[7] = "Hip-hop"
+                seq[6] = "Hip-hop"
             case "O":
-                seq[7] = "Other"
+                seq[6] = "Other"
 
         features = ["BPM", "TS", "BARS", "FIRST", "LAST", "KEY", "GENRE", "ERA"]
         tokens = []
@@ -97,7 +97,7 @@ class Muse:
         for  key, val in zip(features, seq):
             tokens.append(feature_to_token(key, val, tok2id))
 
-        return tokens
+        return [0] + tokens
 
     def _generate(self, input_seq: list[int], max_tokens: int) -> PrettyMIDI:
         self.museformer.eval()
@@ -105,18 +105,18 @@ class Muse:
 
         output = input_seq
         for _ in range(max_tokens):
-            cur = LongTensor([output]).to(self.system)
-            L = cur.size(1)
+            context = output[-max_tokens:]
+            cur = LongTensor([context]).to(self.system)
 
+            L = cur.size(1)
             mask = triu(ones(L, L, device=self.system), diagonal=1).bool()
 
-            if "src_mask" in self.museformer.__code__.co_varnames:
+            if "src_mask" in self.museformer.forward.__code__.co_varnames:
                 logits = self.museformer(cur, src_mask=mask)
             else:
                 logits = self.museformer(cur)
-            next_logits = logits[0, -1, :]
 
-            next_id = argmax(next_logits).item()
+            next_id = argmax(logits[0, -1]).item()
             output.append(next_id)
 
             if next_id == 1:
