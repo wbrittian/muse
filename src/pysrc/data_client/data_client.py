@@ -88,6 +88,9 @@ class DataClient(Dataset):
     
     def max_seq_len(self) -> int:
         return len(self.tokenized_data[0])
+    
+    def get_dict(self) -> dict[str, int]:
+        return self._tok2id
 
     def __len__(self) -> int:
         return len(self.tokenized_data)

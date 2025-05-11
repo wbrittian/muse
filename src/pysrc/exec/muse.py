@@ -5,9 +5,11 @@ from torch import device
 import torch.cuda as cuda
 
 from pysrc.data_client.data_client import DataClient
+from pysrc.data_client.tokenizer import feature_to_token
 from pysrc.model.pytorch_model import PytorchModel
 from pysrc.model.train_model import train_model
 from pysrc.exec.params import get_params, load_params
+from pysrc.exec.utils import get_input
 
 class Muse:
     def __init__(self) -> None:
@@ -48,12 +50,55 @@ class Muse:
             "bpm: 60-180" +
             "ts: 4/4, 3/4, 6/8, 12/8, 9/8\n" +
             "bars: 2-80\n" +
-            "first: 21-108"
+            "first: 21-108\n" +
+            "last: 21-108\n" +
+            "key: Ab Major-G# minor\n" +
+            "genre: [P]op, [R]ock, [F]unk/Soul, R&[B], [H]ip-hop, [O]ther\n" +
+            "era: 1950s-2020s"
         )
 
+        seq = []
+        seq.append(get_input("bpm (120) > ", "120", [str(i) for i in range(60, 121, 10)]))
+        seq.append(get_input("ts (4/4) > ", "4/4", ["4/4", "3/4", "6/8", "12/8", "9/8"]))
+        seq.append(get_input("bars (16) > ", "16", [str(i) for i in range(2, 81)]))
+        seq.append(get_input("first (60) > ", "60", [str(i) for i in range(21, 109)]))
+        seq.append(get_input("last (60) > ", "60", [str(i) for i in range(21, 109)]))
+        seq.append(get_input("key (C Major) > ", "C Major", [
+            "Ab Major", "A Major", "A minor", "B Major", "B minor", "Bb minor", "Bb Major",
+            "C minor", "C# minor", "C Major", "Db Major", "D Major", "E minor", "E Major",
+            "Eb Major", "Eb minor", "F minor", "F# minor", "F Major", "Gb Major", "G Major",
+            "G# minor"
+        ]))
+        seq.append(get_input("genre (P) > ", "Pop", [
+            "P", "R", "F", "B", "H", "O",
+            "Pop", "Rock", "Funk/Soul", "R&B", "Hip-hop", "Other"
+        ]))
+        seq.append(get_input("era (2000s) > ", "2000s", [
+            "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"
+        ]))
 
-        bpm = input("bpm (120) > ")
-        
+        match seq[6]:
+            case "P":
+                seq[6] = "Pop"
+            case "R":
+                seq[6] = "Rock"
+            case "F":
+                seq[6] = "Funk/Soul"
+            case "B":
+                seq[6] = "R&B"
+            case "H":
+                seq[6] = "Hip-hop"
+            case "O":
+                seq[6] = "Other"
+
+        features = ["BPM", "TS", "BARS", "FIRST", "LAST", "KEY", "GENRE", "ERA"]
+        tokens = []
+        tok2id = self.data_client.get_dict()
+        for  key, val in zip(features, seq):
+            tokens.append(feature_to_token(key, val, tok2id))
+
+        return tokens
+
     def _generate(self, input_seq: list[int]) -> PrettyMIDI:
         pass
 
