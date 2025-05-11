@@ -47,7 +47,8 @@ class DataClient(Dataset):
                 tokens = load(f)
             tokens = {int(k): v for k, v in tokens.items()}
         else:
-            self._load_data("data/")
+            self._load_data(Path("data/"))
+            print("generating tokens...")
             tokens = generate_tokens(self.melody_data)
 
         self._id2tok = tokens
@@ -78,6 +79,7 @@ class DataClient(Dataset):
 
 
     def load(self) -> None:
+        print("loading data...")
         self._load_tokens(Path("model/tokens.json"))
         self._get_data(Path("data/"))
 

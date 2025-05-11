@@ -3,18 +3,17 @@ from pretty_midi import PrettyMIDI, note_number_to_name
 
 import numpy as np
 
+def feature_to_token(key: str, val: Any, tok2id: dict[str, int]) -> int:
+        raw_token = f"<{key}_{val}>"
+        if raw_token not in tok2id:
+            print("no token match")
+
+        return tok2id[raw_token]
+
 class Tokenizer:
-    def __init__(self, tok2id: list[str, int], melody_data: list[dict[str, Any]]):
+    def __init__(self, tok2id: dict[str, int], melody_data: list[dict[str, Any]]):
         self._tok2id = tok2id
         self._melody_data = melody_data
-
-    def _feature_to_token(self, key: str, val: Any) -> int:
-        raw_token = f"<{key}_{val}>"
-        ###
-        if raw_token not in self._tok2id:
-            print("no token match")
-        ###
-        return self._tok2id[raw_token]
 
     def _quantize_notes(self, pm: PrettyMIDI, qdiv: int):
         beat_times = pm.get_beats() 
@@ -78,7 +77,7 @@ class Tokenizer:
 
             for feature, value in melody.items():
                 if feature != "midi":
-                    tokens.append(self._feature_to_token(feature, value))
+                    tokens.append(feature_to_token(feature, value, self._tok2id))
 
             stream = self._midi_to_tokens(melody["midi"])
             tokens = tokens + stream

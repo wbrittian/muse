@@ -41,9 +41,19 @@ class Muse:
         train_model(self.museformer, self.data_client, self.system, str(self.model_path))
         print("model loaded")
 
-    def _get_input_tokens(self, input_txt: str) -> list[int]:
-        pass
+    def _get_input_tokens(self) -> list[int]:
+        print(
+            "please input parameters or accept defaults\n\n" +
+            "options:\n" +
+            "bpm: 60-180" +
+            "ts: 4/4, 3/4, 6/8, 12/8, 9/8\n" +
+            "bars: 2-80\n" +
+            "first: 21-108"
+        )
 
+
+        bpm = input("bpm (120) > ")
+        
     def _generate(self, input_seq: list[int]) -> PrettyMIDI:
         pass
 
@@ -54,15 +64,17 @@ class Muse:
         self.data_client.load()
         if Path.exists(self.config_path):
             params = load_params(str(self.config_path))
-            self._load_model(params)
+            if Path.exists(self.model_path):
+                self._load_model(params)
+            else:
+                self._train_model(params)
 
         while True:
             cmd = input("> ")
 
             match cmd:
                 case "generate" | "g":
-                    input_txt = input("input prompt > ")
-                    input_seq = self._to_tokens(input_txt)
+                    input_seq = self._get_input_tokens()
 
                     output_midi = self._generate(input_seq)
                     self._send_to_fl(output_midi)
