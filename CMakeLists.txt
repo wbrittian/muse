@@ -35,3 +35,4 @@ target_link_libraries(museformer_tests PRIVATE gtest::gtest)
 
 pybind11_add_module(model src/cppsrc/main.cpp)
 install(TARGETS model DESTINATION museformer)
+target_link_libraries(model PRIVATE Eigen3::Eigen)
