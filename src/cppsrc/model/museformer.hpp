@@ -1,3 +1,7 @@
+#pragma once
+
+#include <Eigen/Dense>
+
 class Museformer {
 public:
     void init(
@@ -10,6 +14,10 @@ public:
         int p_drop
     );
 
+    void test() {
+        std::cout << "hello" << std::endl;
+    }
+
 private:
     // hyperparams
     int vocab_size;
@@ -20,5 +28,5 @@ private:
     int dim_ff;
     int p_drop;
 
-    
+
 };
