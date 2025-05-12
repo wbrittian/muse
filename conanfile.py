@@ -9,6 +9,7 @@ class ExampleRecipe(ConanFile):
     def requirements(self):
         self.requires("gtest/1.15.0")
         self.requires("pybind11/2.13.6")
+        self.requires("eigen/3.4.0")
 
 
     def layout(self):
