@@ -46,11 +46,11 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
         i += 1
 
     # FIRST, LAST
-    for note in range(128):
+    for note in range(21, 109):
         id2tok[i] = "<FIRST_" + str(note) + ">"
-        id2tok[128+i] = "<LAST_" + str(note) + ">"
+        id2tok[88+i] = "<LAST_" + str(note) + ">"
         i += 1
-    i += 128
+    i += 88
 
     # KEY
     for key in keys:
@@ -84,8 +84,6 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
         i += 1
 
     id2tok = dict(sorted(id2tok.items()))
-    for idx, tok in id2tok.items():
-        print(f"{idx}: {tok}")
 
     with open("model/tokens.json", "w") as f:
         dump(id2tok, f, indent=4)

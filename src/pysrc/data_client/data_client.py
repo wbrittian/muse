@@ -17,6 +17,10 @@ class DataClient(Dataset):
         self._id2tok: dict = None
         self._tok2id: dict = None
 
+        ###
+        self.sample_idx = 429
+        ###
+
     def _load_data(self, base_path: Path) -> None:
         melody_raw = read_csv(base_path / "metadata/bimmuda_per_melody_metadata.csv")
         song_raw = read_csv(base_path / "metadata/bimmuda_per_song_metadata.csv")
@@ -36,9 +40,9 @@ class DataClient(Dataset):
             if 'full' not in midfile.stem:
                 row = collect_features(midfile, melody_metadata, song_metadata)
                 if row is not None:
-                    self.melody_data.append(row)
+                    self.melody_data.append(row)     
 
-        
+
 
     def _load_tokens(self, path: Path) -> None:
         if Path.exists(path):
@@ -47,7 +51,8 @@ class DataClient(Dataset):
                 tokens = load(f)
             tokens = {int(k): v for k, v in tokens.items()}
         else:
-            self._load_data("data/")
+            self._load_data(Path("data/"))
+            print("generating tokens...")
             tokens = generate_tokens(self.melody_data)
 
         self._id2tok = tokens
@@ -78,6 +83,7 @@ class DataClient(Dataset):
 
 
     def load(self) -> None:
+        print("loading data...")
         self._load_tokens(Path("model/tokens.json"))
         self._get_data(Path("data/"))
 
@@ -86,6 +92,12 @@ class DataClient(Dataset):
     
     def max_seq_len(self) -> int:
         return len(self.tokenized_data[0])
+    
+    def get_dict(self, reverse=False) -> dict[str, int]:
+        if reverse:
+            return self._id2tok
+        else:
+            return self._tok2id
 
     def __len__(self) -> int:
         return len(self.tokenized_data)
@@ -95,3 +107,7 @@ class DataClient(Dataset):
         inp = tensor(seq[:-1]).to(dtype=long)
         tgt = tensor(seq[1:]).to(dtype=long)
         return inp, tgt
+    
+    # NOTE: REMOVE LATER
+    def get_sample(self) -> list[int]:
+        return self.tokenized_data[self.sample_idx]

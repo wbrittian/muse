@@ -12,6 +12,8 @@ build: cppinstall
 	cd build && cmake --build .
 	@cp -f build/*.so $(PY_SRC)
 
+install: pyinstall cppinstall
+
 pyinstall:
 	poetry install
 
