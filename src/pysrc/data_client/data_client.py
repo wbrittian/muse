@@ -17,6 +17,10 @@ class DataClient(Dataset):
         self._id2tok: dict = None
         self._tok2id: dict = None
 
+        ###
+        self.sample_idx = 429
+        ###
+
     def _load_data(self, base_path: Path) -> None:
         melody_raw = read_csv(base_path / "metadata/bimmuda_per_melody_metadata.csv")
         song_raw = read_csv(base_path / "metadata/bimmuda_per_song_metadata.csv")
@@ -36,9 +40,9 @@ class DataClient(Dataset):
             if 'full' not in midfile.stem:
                 row = collect_features(midfile, melody_metadata, song_metadata)
                 if row is not None:
-                    self.melody_data.append(row)
+                    self.melody_data.append(row)     
 
-        
+
 
     def _load_tokens(self, path: Path) -> None:
         if Path.exists(path):
@@ -105,5 +109,5 @@ class DataClient(Dataset):
         return inp, tgt
     
     # NOTE: REMOVE LATER
-    def get_first(self) -> list[int]:
-        return self.tokenized_data[0]
+    def get_sample(self) -> list[int]:
+        return self.tokenized_data[self.sample_idx]

@@ -48,7 +48,7 @@ class Muse:
         train_model(self.museformer, self.data_client, self.system, str(self.model_path))
         print("model loaded")
 
-    def _get_input_tokens(self) -> list[int]:
+    def _get_input_tokens(self) -> tuple[list[int], float]:
         print(
             "please input parameters or accept defaults\n\n" +
             "options:\n" +
@@ -63,7 +63,21 @@ class Muse:
         )
 
         seq = []
-        seq.append(get_input("bpm (120) > ", "120", [str(i) for i in range(60, 121, 10)]))
+
+        bpm = input("bpm (120) > ")
+        if bpm == "":
+            bpm = 120
+            seq.append("120")
+        else:
+            bpm = int(bpm)
+            if bpm <= 60:
+                seq.append("60")
+            elif bpm >= 180:
+                seq.append("180")
+            else:
+                seq.append(str((bpm // 10) * 10))
+        bpm = float(bpm)
+            
         seq.append(get_input("ts (4/4) > ", "4/4", ["4/4", "3/4", "6/8", "12/8", "9/8"]))
         seq.append(get_input("bars (16) > ", "16", [str(i) for i in range(2, 81)]))
         seq.append(get_input("first (60) > ", "60", [str(i) for i in range(21, 109)]))
@@ -102,9 +116,9 @@ class Muse:
         for  key, val in zip(features, seq):
             tokens.append(feature_to_token(key, val, tok2id))
 
-        return [0] + tokens
+        return ([0] + tokens, bpm)
 
-    def _generate(self, input_seq: list[int], max_tokens: int) -> PrettyMIDI:
+    def _generate(self, input_seq: list[int], max_tokens: int, bpm: float) -> PrettyMIDI:
         self.museformer.eval()
         seed_ids = LongTensor(input_seq).to(self.system)
 
@@ -130,7 +144,7 @@ class Muse:
         id2tok = self.data_client.get_dict(reverse=True)
         output = [id2tok[i] for i in output]
 
-        return tokens_to_midi(output[9:-1], float(output[1][5:-1]), int(output[5][6:-1]))
+        return tokens_to_midi(output[9:-1], bpm, int(output[5][6:-1]))
 
 
     def _send_to_fl(self, pm: PrettyMIDI) -> None:
@@ -153,11 +167,11 @@ class Muse:
                 off_status = 0x80 | (channel & 0x0F)
                 events.append((note.end, off_status, note.pitch, 0))
 
+        print("streaming to FL Studio...")
         events.sort(key=lambda e: e[0])
         t0 = time()
         for event_time, status, data1, data2 in events:
             wait = event_time - (time() - t0)
-            print(wait)
             if wait > 0:
                 sleep(wait)
 
@@ -180,14 +194,14 @@ class Muse:
 
             match cmd:
                 case "generate" | "g":
-                    input_seq = self._get_input_tokens()
+                    input_seq, bpm = self._get_input_tokens()
 
                     ### REMOVE LATER
-                    input_seq = self.data_client.get_first()
+                    input_seq = self.data_client.get_sample()
+                    bpm = 104.0
                     ###
 
-                    output_midi = self._generate(input_seq, self.data_client.max_seq_len())
-                    print("streaming to FL Studio...")
+                    output_midi = self._generate(input_seq, self.data_client.max_seq_len(), bpm)
                     self._send_to_fl(output_midi)
                     
 

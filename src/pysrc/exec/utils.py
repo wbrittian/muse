@@ -31,7 +31,7 @@ def tokens_to_midi(tokens: list[str], tempo: float, base_pitch: int) -> PrettyMI
 
     events = tokens_to_events(tokens)
     time = 0.0
-    sec_per_beat = 60.0 / tempo
+    sec_per_beat = (60.0 / tempo) / 12
 
     next_dur = None
     result = []
@@ -64,7 +64,8 @@ def tokens_to_midi(tokens: list[str], tempo: float, base_pitch: int) -> PrettyMI
     pm.instruments.append(inst)
     pm.remove_invalid_notes()
 
-    time = datetime.now().strftime("%m_%d-%H_$M")
+    print("writing midi file...")
+    time = datetime.now().strftime("%m_%d-%H_%M")
     pm.write(f"output/muse_{time}.mid")
 
     return pm
