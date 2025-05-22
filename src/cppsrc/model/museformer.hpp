@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <Eigen/Dense>
 
 #include "utils/embedding.hpp"
@@ -26,6 +27,14 @@ public:
     
     , embedding(vocab_size, d_model)
     {}
+
+    void loadWeights(const std::string& path) {
+
+    }
+
+    Eigen::MatrixXd forward() {
+
+    }
 
 private:
     // hyperparams

@@ -36,3 +36,14 @@ target_link_libraries(museformer_tests PRIVATE gtest::gtest)
 pybind11_add_module(model src/cppsrc/main.cpp)
 install(TARGETS model DESTINATION museformer)
 target_link_libraries(model PRIVATE Eigen3::Eigen)
+
+target_include_directories(model
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/cppsrc
+)
+
+# 2) And link Eigen in so its include path is injected:
+target_link_libraries(model
+  PRIVATE
+    Eigen3::Eigen
+)
