@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <Eigen/Dense>
 
 #include "utils/embedding.hpp"
@@ -26,15 +27,13 @@ public:
     , p_drop(p_drop)
     
     , embedding(vocab_size, d_model)
-    {}
-
-    void loadWeights(const std::string& path) {
-
+    , positional_encoding(d_model, max_seq_len)
+    {
+        init_positional_encoding();
     }
 
-    Eigen::MatrixXd forward() {
-
-    }
+    void loadWeights(const std::string& path);
+    std::vector<int> generate(const std::vector<int>& input_tokens);
 
 private:
     // hyperparams
@@ -47,4 +46,8 @@ private:
     float p_drop;
 
     Embedding embedding;
+    Eigen::MatrixXd positional_encoding;
+
+    void init_positional_encoding();
+    Eigen::MatrixXd forward(const std::vector<int>& input_tokens);
 };

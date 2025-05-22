@@ -21,23 +21,10 @@ public:
         }
     }
 
-    Eigen::MatrixXd embed(std::vector<int> tokens) {
-        Eigen::MatrixXd result(tokens.size(), d_model);
-        for (int i = 0; i < tokens.size(); i++) {
-            Eigen::RowVectorXd token_embed = embedding.row(tokens[i]);
-            result.row(i) = token_embed;
-        }
+    Eigen::MatrixXd embed(const std::vector<int>& tokens);
 
-        return result;
-    }
-
-    void update_embedding(Eigen::MatrixXd new_embedding) {
-        embedding = new_embedding;
-    }
-
-    Eigen::MatrixXd get_embedding() {
-        return embedding;
-    }
+    void update_embedding(const Eigen::MatrixXd& new_embedding);
+    Eigen::MatrixXd get_embedding();
 
 private:
     int d_model;
