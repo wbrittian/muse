@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.20)
-
 project(model LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -42,7 +41,6 @@ target_include_directories(model
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cppsrc
 )
 
-# 2) And link Eigen in so its include path is injected:
 target_link_libraries(model
   PRIVATE
     Eigen3::Eigen

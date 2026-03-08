@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 
 #include "utils/embedding.hpp"
+#include "decoder/decoder_block.hpp"
 
 class Museformer {
 public:
@@ -32,7 +33,9 @@ public:
         init_positional_encoding();
     }
 
-    void loadWeights(const std::string& path);
+    void save(const std::string& path);
+    void load(const std::string& path);
+
     std::vector<int> generate(const std::vector<int>& input_tokens);
 
 private:
@@ -47,6 +50,8 @@ private:
 
     Embedding embedding;
     Eigen::MatrixXd positional_encoding;
+
+    std::vector<DecoderBlock> decoder_blocks;
 
     void init_positional_encoding();
     Eigen::MatrixXd forward(const std::vector<int>& input_tokens);

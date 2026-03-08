@@ -23,7 +23,7 @@ public:
 
     Eigen::MatrixXd embed(const std::vector<int>& tokens);
 
-    void update_embedding(const Eigen::MatrixXd& new_embedding);
+    void apply_gradient(const Eigen::MatrixXd& gradient, const float& lr);
     Eigen::MatrixXd get_embedding();
 
 private:

@@ -11,8 +11,8 @@ Eigen::MatrixXd Embedding::embed(const std::vector<int>& tokens) {
     return result;
 }
 
-void Embedding::update_embedding(const Eigen::MatrixXd& new_embedding) {
-    embedding = new_embedding;
+void Embedding::apply_gradient(const Eigen::MatrixXd& gradient, const float& lr) {
+    embedding -= lr * gradient;
 }
 
 Eigen::MatrixXd Embedding::get_embedding() {

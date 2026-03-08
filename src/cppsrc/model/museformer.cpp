@@ -1,8 +1,14 @@
-#include "museformer.hpp"
 #include <math.h>
 
+#include "museformer.hpp"
+
+
 // public
-void Museformer::loadWeights(const std::string& path) {
+void Museformer::save(const std::string& path) {
+
+}
+
+void Museformer::load(const std::string& path) {
 
 }
 
@@ -17,7 +23,10 @@ void Museformer::init_positional_encoding() {
 }
 
 Eigen::MatrixXd Museformer::forward(const std::vector<int>& input_tokens) {
-    embedding.embed(input_tokens);
+    Eigen::MatrixXd embed_matrix = embedding.embed(input_tokens);
+    embed_matrix += positional_encoding;
 
-    
+    for (DecoderBlock block : decoder_blocks) {
+        embed_matrix = block.forward(embed_matrix);
+    }
 }
