@@ -10,6 +10,7 @@ def get_params(config_path: str) -> dict[str, Any]:
     num_layers = input("num_layers (2) > ")
     dim_ff = input("dim_ff (512) > ")
     p_drop = input("p_drop (.1) > ")
+    num_epochs = input("num_epochs (50) > ")
 
     if d_model == "" or d_model == " ":
         d_model = 128
@@ -35,13 +36,19 @@ def get_params(config_path: str) -> dict[str, Any]:
         p_drop = .1
     else:
         p_drop = float(p_drop)
-    
+
+    if num_epochs == "" or num_epochs == " ":
+        num_epochs = 50
+    else:
+        num_epochs = int(num_epochs)
+
     params = {
         "d_model": d_model,
         "num_heads": num_heads,
         "num_layers": num_layers,
         "dim_ff": dim_ff,
-        "p_drop": p_drop
+        "p_drop": p_drop,
+        "num_epochs": num_epochs
     }
 
     with open(config_path, "w") as f:
@@ -58,5 +65,6 @@ def load_params(config_path) -> dict[str, Any]:
     params["num_layers"] = int(params["num_layers"])
     params["dim_ff"] = int(params["dim_ff"])
     params["p_drop"] = float(params["p_drop"])
+    params["num_epochs"] = int(params.get("num_epochs", 50))
 
     return params

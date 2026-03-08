@@ -46,7 +46,7 @@ class Muse:
         )
         
         print("training model...")
-        train_model(self.museformer, self.data_client, self.system, str(self.model_path))
+        train_model(self.museformer, self.data_client, self.system, str(self.model_path), params["num_epochs"])
         print("model loaded")
 
     def _get_input_tokens(self) -> tuple[list[int], float]:
