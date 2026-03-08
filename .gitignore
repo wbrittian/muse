@@ -1,3 +1,14 @@
 build
 output
 .vscode
+__pycache__/
+**/__pycache__/
+**/*.pyc
+**/*.so
+CMakeUserPresets.json
+data/bimmuda_dataset/
+data/metadata/
+data/tokenized_data.json
+data/config.json
+model/museformer.pt
+model/tokens.json
