@@ -11,30 +11,18 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(GTest REQUIRED)
 enable_testing()
 
-file(GLOB MUSEFORMER_MAIN src/cppsrc/main.cpp)
+file(GLOB_RECURSE MUSEFORMER_SOURCES src/cppsrc/model/*.cpp)
 file(GLOB_RECURSE MUSEFORMER_HEADERS src/cppsrc/model/*.hpp)
 file(GLOB_RECURSE MUSEFORMER_TESTS src/cppsrc/test/*.cpp)
 
-add_executable(museformer ${MUSEFORMER_MAIN} ${MUSEFORMER_HEADERS})
-target_include_directories(museformer PUBLIC src)
-
-add_executable(museformer_tests ${MUSEFORMER_TESTS} ${MUSEFORMER_HEADERS})
+add_executable(museformer_tests ${MUSEFORMER_TESTS} ${MUSEFORMER_SOURCES} ${MUSEFORMER_HEADERS})
 target_include_directories(museformer_tests PUBLIC src)
 
-target_link_libraries(museformer PRIVATE Python3::Python)
-target_link_libraries(museformer PRIVATE pybind11::pybind11)
-target_link_libraries(museformer PRIVATE Eigen3::Eigen)
-target_link_libraries(museformer PRIVATE ${Python3_LIBRARIES})
-
-target_link_libraries(museformer_tests PRIVATE Python3::Python)
-target_link_libraries(museformer_tests PRIVATE pybind11::pybind11)
 target_link_libraries(museformer_tests PRIVATE Eigen3::Eigen)
-target_link_libraries(museformer_tests PRIVATE ${Python3_LIBRARIES})
 target_link_libraries(museformer_tests PRIVATE gtest::gtest)
 
-pybind11_add_module(model src/cppsrc/main.cpp)
+pybind11_add_module(model src/cppsrc/main.cpp ${MUSEFORMER_SOURCES})
 install(TARGETS model DESTINATION museformer)
-target_link_libraries(model PRIVATE Eigen3::Eigen)
 
 target_include_directories(model
   PRIVATE
