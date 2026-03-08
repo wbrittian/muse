@@ -6,7 +6,7 @@ authors = [
     {name = "William Brittian",email = "williambrittian13@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "pandas (>=2.2.3,<3.0.0)",
     "pretty-midi (>=0.2.10,<0.3.0)",
