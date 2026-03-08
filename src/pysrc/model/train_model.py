@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import torch.cuda as cuda
 
 from pysrc.model.pytorch_model import PytorchModel
+from pysrc.model.export_weights import export_weights
 from pysrc.data_client.data_client import DataClient
 
 def train_model(
@@ -41,3 +42,4 @@ def train_model(
         print(f"loss for epoch {epoch:2d}: {avg_loss:.4f}")
 
     museformer.save_state(save_path)
+    export_weights(museformer, save_path.replace(".pt", ".bin"))
