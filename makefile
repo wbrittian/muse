@@ -4,7 +4,7 @@ RELEASE_TYPE = Release
 PY_SRC = src/pysrc
 CPP_SRC = src/cppsrc
 
-run: build
+run: build pyinstall
 	poetry run python3 -m pysrc.main
 
 build: cppinstall

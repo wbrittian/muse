@@ -21,15 +21,15 @@ target_include_directories(museformer_tests PUBLIC src)
 target_link_libraries(museformer_tests PRIVATE Eigen3::Eigen)
 target_link_libraries(museformer_tests PRIVATE gtest::gtest)
 
-pybind11_add_module(model src/cppsrc/main.cpp ${MUSEFORMER_SOURCES})
-install(TARGETS model DESTINATION museformer)
+pybind11_add_module(museformer src/cppsrc/main.cpp ${MUSEFORMER_SOURCES})
+install(TARGETS museformer DESTINATION museformer)
 
-target_include_directories(model
+target_include_directories(museformer
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/cppsrc
 )
 
-target_link_libraries(model
+target_link_libraries(museformer
   PRIVATE
     Eigen3::Eigen
 )

@@ -54,6 +54,7 @@ files = [
 
 [package.dependencies]
 idna = ">=2.8"
+typing_extensions = {version = ">=4.5", markers = "python_version < \"3.13\""}
 
 [package.extras]
 trio = ["trio (>=0.31.0)", "trio (>=0.32.0)"]
@@ -1643,5 +1644,5 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.13"
-content-hash = "65c51e016b3542bcf9e84ad9869607ae2fb3ba17357011c46f5e94753ade0205"
+python-versions = ">=3.12"
+content-hash = "32fbed81c427b72b684499ca8709c43eebf98764d0d189f91a22468dcf093f89"

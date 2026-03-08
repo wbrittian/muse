@@ -5,7 +5,7 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(model, m) {
+PYBIND11_MODULE(museformer, m) {
     py::class_<Museformer>(m, "Museformer")
         .def(py::init<int, int, int, int, int, int>(),
              py::arg("vocab_size"),
