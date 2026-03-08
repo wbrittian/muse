@@ -16,7 +16,7 @@ def _write_vector(f, arr: np.ndarray) -> None:
 
 
 def export_weights(model: PytorchModel, path: str) -> None:
-    sd = {k: v.detach().numpy() for k, v in model.state_dict().items()}
+    sd = {k: v.detach().cpu().numpy() for k, v in model.state_dict().items()}
     num_layers = len(model.encoder.layers)
 
     Path(path).parent.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,4 @@
-.PHONY: build install
+.PHONY: build install clean
 
 RELEASE_TYPE = Release
 PY_SRC = src/pysrc
@@ -19,3 +19,6 @@ pyinstall:
 
 cppinstall:
 	conan install . --build=missing
+
+clean:
+	rm -f model/museformer.pt model/config.json
