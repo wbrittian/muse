@@ -14,6 +14,7 @@ from pysrc.data_client.tokenizer import feature_to_token
 from pysrc.model.pytorch_model import PytorchModel
 from pysrc.model.train_model import train_model
 from pysrc.exec.params import get_params, load_params
+from pysrc.exec.prompt import parse_prompt
 from pysrc.exec.utils import get_input, tokens_to_midi
 
 class Muse:
@@ -82,12 +83,7 @@ class Muse:
         seq.append(get_input("bars (16) > ", "16", [str(i) for i in range(2, 81)]))
         seq.append(get_input("first (60) > ", "60", [str(i) for i in range(21, 109)]))
         seq.append(get_input("last (60) > ", "60", [str(i) for i in range(21, 109)]))
-        seq.append(get_input("key (C Major) > ", "C Major", [
-            "Ab Major", "A Major", "A minor", "B Major", "B minor", "Bb minor", "Bb Major",
-            "C minor", "C# minor", "C Major", "Db Major", "D Major", "E minor", "E Major",
-            "Eb Major", "Eb minor", "F minor", "F# minor", "F Major", "Gb Major", "G Major",
-            "G# minor"
-        ]))
+        seq.append(get_input("mode (major) > ", "major", ["major", "minor"]))
         seq.append(get_input("genre (P) > ", "Pop", [
             "P", "R", "F", "B", "H", "O",
             "Pop", "Rock", "Funk/Soul", "R&B", "Hip-hop", "Other"
@@ -95,6 +91,9 @@ class Muse:
         seq.append(get_input("era (2000s) > ", "2000s", [
             "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"
         ]))
+        seq.append(get_input("contour (arch) > ", "arch", ["ascending", "descending", "arch", "valley"]))
+        seq.append(get_input("density (moderate) > ", "moderate", ["sparse", "moderate", "dense"]))
+        seq.append(get_input("range (moderate) > ", "moderate", ["narrow", "moderate", "wide"]))
 
         match seq[6]:
             case "P":
@@ -110,13 +109,36 @@ class Muse:
             case "O":
                 seq[6] = "Other"
 
-        features = ["BPM", "TS", "BARS", "FIRST", "LAST", "KEY", "GENRE", "ERA"]
+        features = ["BPM", "TS", "BARS", "FIRST", "LAST", "MODE", "GENRE", "ERA", "CONTOUR", "DENSITY", "RANGE"]
         tokens = []
         tok2id = self.data_client.get_dict()
         for  key, val in zip(features, seq):
             tokens.append(feature_to_token(key, val, tok2id))
 
         return ([0] + tokens, bpm)
+
+    def _prompt_to_tokens(self) -> tuple[list[int], float]:
+        text = input("describe your melody > ")
+        print("thinking...")
+        params = parse_prompt(text)
+
+        print(
+            f"\n  bpm: {params['bpm']}  ts: {params['ts']}  bars: {params['bars']}\n"
+            f"  mode: {params['mode']}  genre: {params['genre']}  era: {params['era']}\n"
+            f"  contour: {params['contour']}  density: {params['density']}  range: {params['range']}\n"
+        )
+
+        tok2id = self.data_client.get_dict()
+        features = ["BPM", "TS", "BARS", "FIRST", "LAST", "MODE", "GENRE", "ERA", "CONTOUR", "DENSITY", "RANGE"]
+        values = [
+            str(params["bpm"]), params["ts"], str(params["bars"]),
+            str(params["first"]), str(params["last"]),
+            params["mode"], params["genre"], params["era"],
+            params["contour"], params["density"], params["range"]
+        ]
+
+        tokens = [feature_to_token(k, v, tok2id) for k, v in zip(features, values)]
+        return ([0] + tokens, float(params["bpm"]))
 
     def _generate(self, input_seq: list[int], max_tokens: int, bpm: float) -> PrettyMIDI:
         self.museformer.eval()
@@ -144,7 +166,7 @@ class Muse:
         id2tok = self.data_client.get_dict(reverse=True)
         output = [id2tok[i] for i in output]
 
-        return tokens_to_midi(output[9:-1], bpm, int(output[5][6:-1]))
+        return tokens_to_midi(output[12:-1], bpm, int(output[5][6:-1]))
 
 
     def _send_to_fl(self, pm: PrettyMIDI) -> None:
@@ -194,13 +216,7 @@ class Muse:
 
             match cmd:
                 case "generate" | "g":
-                    input_seq, bpm = self._get_input_tokens()
-
-                    ### REMOVE LATER
-                    input_seq = self.data_client.get_sample()
-                    bpm = 104.0
-                    ###
-
+                    input_seq, bpm = self._prompt_to_tokens()
                     output_midi = self._generate(input_seq, self.data_client.max_seq_len(), bpm)
                     self._send_to_fl(output_midi)
                     
