@@ -28,7 +28,8 @@ class PytorchModel(nn.Module):
         tok = self.token_embed(x)
         tok += self.pos_embed[:, :tok.size(1), :]
 
-        enc = self.encoder(tok).transpose(0, 1)
+        mask = nn.Transformer.generate_square_subsequent_mask(tok.size(1), device=tok.device)
+        enc = self.encoder(tok, mask=mask, is_causal=True)
         logits = self.output_proj(enc)
         return logits
     

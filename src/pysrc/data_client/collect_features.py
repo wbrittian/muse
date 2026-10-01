@@ -14,7 +14,7 @@ def collect_features(
     if key.endswith("misc"):
         return None
 
-    bpm = midi_data.estimate_tempo()
+    bpm = midi_data.get_tempo_changes()[1][0]
     if bpm < 70:
         bpm_range = "60"
     elif bpm < 180:
@@ -33,7 +33,7 @@ def collect_features(
         denom = signature_changes[0].denominator
         ts = str(num) + "/" + str(denom)
 
-        num_bars = len(midi_data.get_beats())
+        num_bars = len(midi_data.get_downbeats())
 
     key = key[:-2]
     song = song_metadata[key][0]

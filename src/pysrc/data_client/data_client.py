@@ -64,20 +64,8 @@ class DataClient(Dataset):
         for i in range(len(self.tokenized_data)):
             seq = self.tokenized_data[i]
             to_add = seqlen - len(seq)
-            self.tokenized_data[i] = seq + [2 for _ in range(to_add)] + [1]
+            self.tokenized_data[i] = seq + [1] + [2 for _ in range(to_add)]
 
-
-    def _augment_transpositions(self, melody_data: list[dict]) -> list[dict]:
-        augmented = []
-        for melody in melody_data:
-            all_notes = [n for inst in melody["midi"].instruments for n in inst.notes]
-            min_pitch = min(n.pitch for n in all_notes)
-            max_pitch = max(n.pitch for n in all_notes)
-            max_up   = 108 - max_pitch
-            max_down = min_pitch - 21
-            for offset in range(max(-6, -max_down), min(6, max_up) + 1):
-                augmented.append({**melody, "FIRST": melody["FIRST"] + offset, "LAST": melody["LAST"] + offset})
-        return augmented
 
     def _get_data(self, path: Path) -> None:
         if Path.exists(path / "tokenized_data.json"):
@@ -86,8 +74,7 @@ class DataClient(Dataset):
         else:
             if self.melody_data == []:
                 self._load_data(path)
-            augmented = self._augment_transpositions(self.melody_data)
-            tokenizer = Tokenizer(self._tok2id, augmented)
+            tokenizer = Tokenizer(self._tok2id, self.melody_data)
             self.tokenized_data = tokenizer.convert_to_tokens()
             self._pad_data()
 
