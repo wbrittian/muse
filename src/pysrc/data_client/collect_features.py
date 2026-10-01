@@ -45,7 +45,8 @@ def collect_features(
     last_note  = all_notes[-1].pitch
 
     key_changes = midi_data.key_signature_changes
-    song_key = key_number_to_key_name(key_changes[0].key_number)
+    key_name = key_number_to_key_name(key_changes[0].key_number)
+    mode = "minor" if "minor" in key_name else "major"
 
     if "Genre (Broad 1)" in song:
         genre = song["Genre (Broad 1)"]
@@ -58,14 +59,48 @@ def collect_features(
 
     era = str((int(key[:4]) // 10) * 10) + "s"
 
+    pitches = [n.pitch for n in all_notes]
+    mid_third = pitches[len(pitches)//3 : 2*len(pitches)//3]
+    max_mid = max(mid_third) if mid_third else first_note
+    min_mid = min(mid_third) if mid_third else first_note
+    if max_mid > max(first_note, last_note) + 3:
+        contour = "arch"
+    elif min_mid < min(first_note, last_note) - 3:
+        contour = "valley"
+    elif last_note > first_note + 3:
+        contour = "ascending"
+    elif last_note < first_note - 3:
+        contour = "descending"
+    else:
+        contour = "arch"
+
+    notes_per_bar = len(all_notes) / int(num_bars)
+    if notes_per_bar < 4:
+        density = "sparse"
+    elif notes_per_bar < 8:
+        density = "moderate"
+    else:
+        density = "dense"
+
+    pitch_span = max(pitches) - min(pitches)
+    if pitch_span < 12:
+        note_range = "narrow"
+    elif pitch_span < 24:
+        note_range = "moderate"
+    else:
+        note_range = "wide"
+
     return {
         "BPM": bpm_range,
         "TS": ts,
         "BARS": int(num_bars),
         "FIRST": first_note,
         "LAST": last_note,
-        "KEY": song_key,
+        "MODE": mode,
         "GENRE": genre,
         "ERA": era,
+        "CONTOUR": contour,
+        "DENSITY": density,
+        "RANGE": note_range,
         "midi": midi_data
     }

@@ -4,22 +4,16 @@ from json import dump
 def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
     # collect unique types
     time_signatures = set()
-    keys = set()
     eras = set()
     for melody in melody_data:
         ts = melody["TS"]
         if ts not in time_signatures:
             time_signatures.add(ts)
 
-        key = melody["KEY"]
-        if key not in keys:
-            keys.add(key)
-
         era = melody["ERA"]
         if era not in eras:
             eras.add(era)
-    
-    keys = sorted(keys, key=lambda x: x[0])
+
     eras = sorted(eras, key=lambda x: int(x[:4]))
 
     # tokens
@@ -52,9 +46,9 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
         i += 1
     i += 88
 
-    # KEY
-    for key in keys:
-        id2tok[i] = f"<KEY_{key}>"
+    # MODE
+    for mode in ["major", "minor"]:
+        id2tok[i] = f"<MODE_{mode}>"
         i += 1
 
     # GENRE
@@ -81,6 +75,21 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
     # REST
     for beats in range(1, 13):
         id2tok[i] = f"<REST_{beats}>"
+        i += 1
+
+    # CONTOUR
+    for contour in ["ascending", "descending", "arch", "valley"]:
+        id2tok[i] = f"<CONTOUR_{contour}>"
+        i += 1
+
+    # DENSITY
+    for density in ["sparse", "moderate", "dense"]:
+        id2tok[i] = f"<DENSITY_{density}>"
+        i += 1
+
+    # RANGE
+    for note_range in ["narrow", "moderate", "wide"]:
+        id2tok[i] = f"<RANGE_{note_range}>"
         i += 1
 
     id2tok = dict(sorted(id2tok.items()))

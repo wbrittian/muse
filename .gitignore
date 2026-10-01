@@ -1,2 +1,8 @@
 build
 output
+.vscode
+__pycache__/
+**/__pycache__/
+**/*.pyc
+**/*.so
+CMakeUserPresets.json

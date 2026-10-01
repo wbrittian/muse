@@ -3,7 +3,8 @@
         {
             "name": "Mac",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/Users/williambrittian/.conan2/p/eigen3d88c0279cc26/p/include/eigen3"
             ],
             "defines": [],
             "cStandard": "c17",
@@ -12,7 +13,8 @@
             "configurationProvider": "ms-vscode.makefile-tools",
             "compileCommands": [
                 "${workspaceFolder}/build/compile_commands.json"
-            ]
+            ],
+            "compilerPath": "/opt/homebrew/opt/llvm/bin/clang++"
         }
     ],
     "version": 4
