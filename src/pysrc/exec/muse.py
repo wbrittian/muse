@@ -257,10 +257,14 @@ class Muse:
 
             match cmd:
                 case "generate" | "g":
+                    input_seq, bpm = self._get_input_tokens()
+                    output_midi = self._generate(input_seq, self.data_client.max_seq_len(), bpm)
+                    self._send_to_fl(output_midi)
+
+                case "prompt" | "p":
                     input_seq, bpm = self._prompt_to_tokens()
                     output_midi = self._generate(input_seq, self.data_client.max_seq_len(), bpm)
                     self._send_to_fl(output_midi)
-                    
 
                 case "configure" | "c":
                     params = get_params(str(self.config_path))
@@ -273,7 +277,8 @@ class Muse:
                 case "info" | "i":
                     print(
                         "list of commands: \n" +
-                        "   [g]enerate - generate a midi sequence from your input prompt\n" +
+                        "   [g]enerate - generate with manual parameters\n" +
+                        "   [p]rompt - generate from natural language (requires API key)\n" +
                         "   [c]onfigure - configure model hyperparams and train model\n" +
                         "   [r]etrain - retrain model based on given params\n" +
                         "   [i]nfo - print list of commands\n" + 
