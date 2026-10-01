@@ -25,6 +25,10 @@ class Muse:
 
         self.config_path = Path("model/config.json")
         self.model_path = Path("model/museformer.pt")
+        self.weights_path = Path("model/museformer.bin")
+
+        self.backend = os.environ.get("MUSE_BACKEND", "cpp")
+        self.cpp_model = None
 
         self.system = device("cuda" if cuda.is_available() else "mps" if mps.is_available() else "cpu")
 
@@ -35,7 +39,34 @@ class Muse:
             params
         )
         self.museformer.load_state(str(self.model_path), self.system)
+        self._load_cpp_model(params)
         print("model loaded")
+
+    def _load_cpp_model(self, params: dict[str, Any]) -> None:
+        self.cpp_model = None
+        if self.backend != "cpp":
+            return
+
+        try:
+            from pysrc.museformer import Museformer
+        except ImportError:
+            print("c++ museformer not built (make build), using pytorch")
+            return
+
+        model = Museformer(
+            self.data_client.vocab_size(),
+            self.data_client.max_seq_len(),
+            params["d_model"],
+            params["num_heads"],
+            params["num_layers"],
+            params["dim_ff"]
+        )
+        try:
+            model.load(str(self.weights_path))
+        except RuntimeError as e:
+            print(f"could not load {self.weights_path} ({e}), using pytorch")
+            return
+        self.cpp_model = model
 
     def _train_model(self, params: dict[str, Any]) -> None:
         print("loading data...")
@@ -48,6 +79,7 @@ class Muse:
         
         print("training model...")
         train_model(self.museformer, self.data_client, self.system, str(self.model_path), params["num_epochs"])
+        self._load_cpp_model(params)
         print("model loaded")
 
     def _get_input_tokens(self) -> tuple[list[int], float]:
@@ -149,22 +181,27 @@ class Muse:
         id2tok = self.data_client.get_dict(reverse=True)
 
         # only melody tokens (and EOS) may follow the control prefix
-        allowed = full((self.data_client.vocab_size(),), -inf, device=self.system)
-        for i, tok in id2tok.items():
-            if tok == "<EOS>" or tok.startswith(("<NOTE_", "<PITCH_", "<REST_")):
-                allowed[i] = 0.0
+        allowed_ids = [
+            i for i, tok in id2tok.items()
+            if tok == "<EOS>" or tok.startswith(("<NOTE_", "<PITCH_", "<REST_"))
+        ]
 
         output = list(input_seq)
-        with no_grad():
-            while len(output) < max_tokens:
-                cur = LongTensor([output]).to(self.system)
-                logits = self.museformer(cur)[0, -1] / temperature + allowed
+        if self.cpp_model is not None:
+            output = self.cpp_model.generate(output, max_tokens, top_k, temperature, allowed_ids)
+        else:
+            allowed = full((self.data_client.vocab_size(),), -inf, device=self.system)
+            allowed[allowed_ids] = 0.0
+            with no_grad():
+                while len(output) < max_tokens:
+                    cur = LongTensor([output]).to(self.system)
+                    logits = self.museformer(cur)[0, -1] / temperature + allowed
 
-                vals, idxs = topk(logits, top_k)
-                next_id = idxs[multinomial(softmax(vals, dim=-1), 1)].item()
-                if next_id == 1:
-                    break
-                output.append(next_id)
+                    vals, idxs = topk(logits, top_k)
+                    next_id = idxs[multinomial(softmax(vals, dim=-1), 1)].item()
+                    if next_id == 1:
+                        break
+                    output.append(next_id)
 
         output = [id2tok[i] for i in output]
         return tokens_to_midi(output[12:], bpm, int(output[4][7:-1]))

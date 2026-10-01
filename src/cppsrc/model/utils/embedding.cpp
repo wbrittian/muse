@@ -1,24 +1,22 @@
+#include <stdexcept>
+#include <string>
+
 #include "embedding.hpp"
 
-
-Eigen::MatrixXd Embedding::embed(const std::vector<int>& tokens) {
-    Eigen::MatrixXd result(tokens.size(), d_model);
-    for (int i = 0; i < tokens.size(); i++) {
-        Eigen::RowVectorXd token_embed = embedding.row(tokens[i]);
-        result.row(i) = token_embed;
+Matrix Embedding::embed(const std::vector<int>& tokens) const {
+    Matrix result(tokens.size(), d_model);
+    for (int i = 0; i < (int)tokens.size(); i++) {
+        if (tokens[i] < 0 || tokens[i] >= embedding.rows())
+            throw std::out_of_range("token id out of range: " + std::to_string(tokens[i]));
+        result.row(i) = embedding.row(tokens[i]);
     }
-
     return result;
 }
 
-void Embedding::set_embedding(const Eigen::MatrixXd& e) {
+void Embedding::set_embedding(const Matrix& e) {
     embedding = e;
 }
 
-void Embedding::apply_gradient(const Eigen::MatrixXd& gradient, const float& lr) {
-    embedding -= lr * gradient;
-}
-
-Eigen::MatrixXd Embedding::get_embedding() {
+const Matrix& Embedding::get_embedding() const {
     return embedding;
 }

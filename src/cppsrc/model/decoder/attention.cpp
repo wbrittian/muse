@@ -2,48 +2,32 @@
 
 #include "attention.hpp"
 
-Eigen::MatrixXd MultiHeadAttention::softmax(const Eigen::MatrixXd& matrix) {
-    Eigen::MatrixXd result(matrix.rows(), matrix.cols());
-    for (int i = 0; i < matrix.rows(); i++) {
-        // subtract max for numerical stability — exp(-inf) = 0 so masked positions zero out correctly
-        double max_val = matrix.row(i).maxCoeff();
-        Eigen::VectorXd exp_row = (matrix.row(i).array() - max_val).exp();
-        result.row(i) = exp_row / exp_row.sum();
-    }
-    return result;
-}
+Matrix MultiHeadAttention::forward(const Matrix& x, KVCache& cache, int pos) const {
+    int n = x.rows();
+    int len = pos + n;
 
-Eigen::MatrixXd MultiHeadAttention::attend(
-    const Eigen::MatrixXd& keys,
-    const Eigen::MatrixXd& queries,
-    const Eigen::MatrixXd& values,
-    const Eigen::MatrixXd& mask
-) {
-    // scale by sqrt(d_head), not sqrt(seq_len)
-    Eigen::MatrixXd S = (queries * keys.transpose()) / std::sqrt((double)queries.cols());
-    S += mask;
-    return softmax(S) * values;
-}
+    Matrix qkv = (x * W_in.transpose()).rowwise() + b_in;
+    cache.keys.middleRows(pos, n) = qkv.middleCols(d_model, d_model);
+    cache.values.middleRows(pos, n) = qkv.rightCols(d_model);
 
-std::vector<Eigen::MatrixXd> MultiHeadAttention::batch(const Eigen::MatrixXd& matrix) {
-    std::vector<Eigen::MatrixXd> heads;
+    float scale = 1.0f / std::sqrt((float)d_head);
+    Matrix scores(n, len);
+    Matrix concat(n, d_model);
     for (int h = 0; h < num_heads; h++) {
-        heads.push_back(matrix.block(0, h * d_head, matrix.rows(), d_head));
-    }
-    return heads;
-}
+        scores.noalias() = qkv.middleCols(h * d_head, d_head)
+                         * cache.keys.block(0, h * d_head, len, d_head).transpose();
+        scores *= scale;
 
-Eigen::MatrixXd MultiHeadAttention::forward(const Eigen::MatrixXd& x, const Eigen::MatrixXd& mask) {
-    Eigen::MatrixXd qkv = (x * W_in.transpose()).rowwise() + b_in.transpose();
+        for (int i = 0; i < n; i++) {
+            int visible = pos + i + 1;
+            auto row = scores.row(i).head(visible);
+            row = (row.array() - row.maxCoeff()).exp();
+            row /= row.sum();
+            scores.row(i).tail(len - visible).setZero();
+        }
 
-    auto Q_heads = batch(qkv.leftCols(d_model));
-    auto K_heads = batch(qkv.middleCols(d_model, d_model));
-    auto V_heads = batch(qkv.rightCols(d_model));
-
-    Eigen::MatrixXd concat(x.rows(), d_model);
-    for (int h = 0; h < num_heads; h++) {
-        concat.block(0, h * d_head, x.rows(), d_head) = attend(K_heads[h], Q_heads[h], V_heads[h], mask);
+        concat.middleCols(h * d_head, d_head).noalias() = scores * cache.values.block(0, h * d_head, len, d_head);
     }
 
-    return (concat * W_out.transpose()).rowwise() + b_out.transpose();
+    return (concat * W_out.transpose()).rowwise() + b_out;
 }

@@ -4,7 +4,7 @@ project(model LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
-find_package(Python3 3.12 COMPONENTS Interpreter Development EXACT REQUIRED)
+find_package(Python3 3.12 COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(pybind11 REQUIRED)
 find_package(Eigen3 REQUIRED NO_MODULE)
 
@@ -20,6 +20,9 @@ target_include_directories(museformer_tests PUBLIC src)
 
 target_link_libraries(museformer_tests PRIVATE Eigen3::Eigen)
 target_link_libraries(museformer_tests PRIVATE gtest::gtest)
+
+include(GoogleTest)
+gtest_discover_tests(museformer_tests)
 
 pybind11_add_module(museformer src/cppsrc/main.cpp ${MUSEFORMER_SOURCES})
 install(TARGETS museformer DESTINATION museformer)

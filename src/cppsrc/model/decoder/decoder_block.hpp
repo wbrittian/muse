@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Eigen/Dense>
-
 #include "attention.hpp"
 #include "../feedforward.hpp"
 #include "../utils/utils.hpp"
@@ -20,5 +18,5 @@ public:
     , norm2(d_model)
     {}
 
-    Eigen::MatrixXd forward(const Eigen::MatrixXd& x, const Eigen::MatrixXd& mask);
+    Matrix forward(const Matrix& x, KVCache& cache, int pos) const;
 };
