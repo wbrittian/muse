@@ -7,6 +7,8 @@ import torch
 
 from pysrc.exec.params import load_params
 from pysrc.model.pytorch_model import PytorchModel
+from pysrc.model.sample import length_guard, melody_token_ids, sample_tokens
+from pysrc.data_client.tokenizer import tokens_to_notes
 from pysrc.museformer import Museformer
 
 MODEL_DIR = Path("model")
@@ -51,7 +53,8 @@ class CppParityTest(unittest.TestCase):
         expected = self.torch_logits(tokens)
         actual = self.cpp_model.forward(tokens)
         self.assertEqual(actual.shape, expected.shape)
-        np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=1e-5)
+        # float32 error grows with depth and width: the 4-layer d256 model differs by up to ~3e-5
+        np.testing.assert_allclose(actual, expected, rtol=1e-5, atol=1e-4)
 
     def test_random_sequences(self) -> None:
         rng = np.random.default_rng(0)
@@ -74,6 +77,24 @@ class CppParityTest(unittest.TestCase):
                 output.append(next_id)
 
         self.assertEqual(self.cpp_model.generate(self.prefix, self.max_seq_len, top_k=1), output)
+
+    def test_bar_guard_matches_pytorch(self) -> None:
+        bars, bar_divs = 4, 48   # PREFIX asks for 16 bars; the guard overrides the model's own length
+        guard = length_guard(self.id2tok, bar_divs, bars)
+        cpp = self.cpp_model.generate(
+            self.prefix, self.max_seq_len, top_k=1, allowed_tokens=melody_token_ids(self.id2tok), **guard
+        )
+        py = sample_tokens(
+            self.torch_model, self.prefix, self.id2tok, torch.device("cpu"), self.max_seq_len,
+            top_k=1, bar_divs=bar_divs, bars=bars
+        )
+        self.assertEqual(cpp, py)
+
+        notes = tokens_to_notes([self.id2tok[i] for i in cpp[len(self.prefix):]], 60)
+        end = max(s + d for s, _, d in notes)
+        self.assertGreater(end, (bars - 1) * bar_divs)
+        self.assertLessEqual(end, (bars + 1) * bar_divs)
+        self.assertTrue(self.id2tok[cpp[-1]].startswith(("<PITCH_", "<REST_")))
 
 
 if __name__ == "__main__":

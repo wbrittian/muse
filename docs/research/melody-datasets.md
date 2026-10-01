@@ -110,9 +110,94 @@ learned from BiMMuDa.
 - Bug fixed: such notes used to be split into repeated NOTE/PITCH pairs and
   then followed by a spurious REST, because the end time of the shortened piece
   was used.
+- Bug fixed: when a file ended exactly on a beat, the quantizer doubled the
+  last note.
 - Encoding and decoding are lossless on cleaned notes (`tests/test_tokenizer.py`,
   including real BiMMuDa files).
+- Against the old tokenizer, 1,039 of 1,158 BiMMuDa sequences are identical.
+  Every one that differs comes from one of the two fixes above.
 
 ## Results
 
-RESULTS_PLACEHOLDER
+### How the comparison was run
+
+- **Held-out set:** 10% of BiMMuDa *songs* (seed 0), which is 116 melodies.
+  All sections of a held-out song are excluded from training. The same split
+  scores every run.
+- **Training data:** the rest of BiMMuDa plus whichever extra sources the run
+  uses.
+- **Early stopping:** each run keeps its best epoch on that same held-out set
+  (patience 8–15). This flatters every row by the same small amount.
+- **Commands:** `scripts/experiment.py` trains; `scripts/sample_eval.py`
+  scores generations.
+- **Hardware:** the Mac (MPS) and the homelab RTX 2060 SUPER.
+
+### Held-out loss and accuracy
+
+`val_loss` is cross-entropy over every non-PAD target. `mel_loss` and `mel_acc`
+cover only the targets after the control prefix: the melody tokens and EOS.
+
+| Run | Train melodies | Model | Best epoch | val_loss | mel_loss | mel_acc |
+|---|---|---|---|---|---|---|
+| baseline (BiMMuDa only) | 1,042 | d128, 2 layers | 49 | 1.584 | 1.581 | 47.5% |
+| + POP909 | 7,691 | d128, 2 layers | 35 | 1.500 | 1.475 | 50.6% |
+| + POP909 + HookTheory | 24,755 | d128, 2 layers | 37 | 1.306 | 1.260 | 58.9% |
+| + POP909 + HookTheory | 24,755 | d256, 4 layers, 8 heads | 15 | 1.269 | 1.219 | 60.3% |
+| ↳ fine-tuned on BiMMuDa (lr 1e-4) | 1,042 | d256, 4 layers | 2 | **1.225** | **1.201** | **60.9%** |
+
+Notes on the table:
+- HookTheory supplies most of the gain. POP909 alone helps less, probably
+  because it is Mandopop.
+- The larger model helps once the data supports it, but it overfits after
+  about 15 epochs.
+- A short fine-tune on BiMMuDa adds a little more, so this is the shipped
+  model (`model/`).
+- `model/config.json` lists all three sources, so an in-app retrain trains on
+  everything.
+
+### Generation quality
+
+There is one generation per held-out control prefix, scored against the real
+held-out melodies. Settings: top-k 16, temperature 1.0, BARS guard on.
+
+| | key fit | distinct pitches | span (semitones) | repetition | bars within ±1 |
+|---|---|---|---|---|---|
+| real held-out melodies | 0.986 | 6.97 | 11.4 | 0.346 | 91% |
+| baseline | 0.985 | 6.88 | 11.1 | 0.179 | 95% |
+| + all sources, small | 0.992 | 7.19 | 11.4 | 0.318 | 100% |
+| shipped (medium, fine-tuned) | 0.994 | 6.61 | 11.1 | 0.363 | 100% |
+
+How each column is measured:
+- **Key fit** is the share of notes inside the best-fitting diatonic scale.
+- **Repetition** is the share of 4-note interval patterns that already occurred
+  earlier in the same melody.
+
+What the numbers show:
+- **Pitch variety.** The original complaint of about 6 distinct pitches and a
+  narrow range came mostly from **top-k 8** sampling. At top-k 8 the baseline
+  gives 6 distinct pitches and a 10-semitone span. Raising top-k to 16 (now
+  the default) matches the real melodies for every model without losing key
+  fit.
+- **Repetition.** Real pop melodies reuse their motifs. The baseline
+  under-repeats (0.18 against 0.35) and wanders. The models trained on more
+  data reuse motifs at the real rate.
+- **BARS.** Unconstrained, only 23% (baseline) and 66% (small, all sources) of
+  samples land within ±1 bar of the request. The new **BARS guard** brings this
+  to 97–100% and runs in both backends:
+  - It masks EOS until the last bar has started.
+  - It stops at the requested length.
+  - It never stops between a NOTE and its PITCH.
+  - It lives in the C++ `Museformer.generate` and in `sample_tokens`, with a
+    parity test between the two.
+- **Listening.** WAVs were rendered with a sine synth (`--wav`). No human has
+  listened to them yet; the numbers above are proxies.
+
+### Next steps
+
+- Lakh MIDI with melody-track extraction, for more Western pop and real
+  genre/era labels on the new data.
+- Look up genre and era for HookTheory songs (MusicBrainz) to replace
+  `Unknown`.
+- Dropout 0.2 on the medium model was still improving when this was written
+  (1.259 at epoch 26, against 1.269 for the original medium run). It is worth
+  finishing and fine-tuning.
