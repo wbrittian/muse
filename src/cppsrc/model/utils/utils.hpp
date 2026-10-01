@@ -1,23 +1,29 @@
 #pragma once
 
+#include <cmath>
 #include <Eigen/Dense>
 
+using Matrix = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using RowVector = Eigen::RowVectorXf;
+
 struct LayerNorm {
-    Eigen::VectorXd weight;
-    Eigen::VectorXd bias;
-    double eps = 1e-5;
+    RowVector weight;
+    RowVector bias;
+    float eps = 1e-5f;
 
     LayerNorm() = default;
     LayerNorm(int d_model)
-    : weight(Eigen::VectorXd::Ones(d_model))
-    , bias(Eigen::VectorXd::Zero(d_model))
+    : weight(RowVector::Ones(d_model))
+    , bias(RowVector::Zero(d_model))
     {}
 
-    Eigen::MatrixXd forward(const Eigen::MatrixXd& x) {
-        Eigen::VectorXd mean = x.rowwise().mean();
-        Eigen::MatrixXd centered = x.colwise() - mean;
-        Eigen::VectorXd var = centered.array().square().rowwise().mean();
-        Eigen::MatrixXd normed = centered.array().colwise() / (var.array() + eps).sqrt();
-        return (normed.array().rowwise() * weight.transpose().array()).rowwise() + bias.transpose().array();
+    void forward(Matrix& x) const {
+        for (int i = 0; i < x.rows(); i++) {
+            auto row = x.row(i);
+            row.array() -= row.mean();
+            float var = row.squaredNorm() / row.size();
+            row *= 1.0f / std::sqrt(var + eps);
+            row = row.cwiseProduct(weight) + bias;
+        }
     }
 };

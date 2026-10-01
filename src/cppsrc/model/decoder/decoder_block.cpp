@@ -1,6 +1,9 @@
 #include "decoder_block.hpp"
 
-Eigen::MatrixXd DecoderBlock::forward(const Eigen::MatrixXd& x, const Eigen::MatrixXd& mask) {
-    Eigen::MatrixXd h = norm1.forward(x + attention.forward(x, mask));
-    return norm2.forward(h + ff.forward(h));
+Matrix DecoderBlock::forward(const Matrix& x, KVCache& cache, int pos) const {
+    Matrix h = x + attention.forward(x, cache, pos);
+    norm1.forward(h);
+    Matrix out = h + ff.forward(h);
+    norm2.forward(out);
+    return out;
 }
