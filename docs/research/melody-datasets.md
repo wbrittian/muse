@@ -1,3 +1,11 @@
+---
+question: Which datasets can add monophonic melodies to BiMMuDa, and does training on them improve generation?
+verdict: HookTheory (Sheet Sage) + POP909, ~24k extra melodies; held-out BiMMuDa val loss 1.58 -> 1.23, melody accuracy 47.5% -> 60.9%
+confidence: high
+expires_when: Lakh melody extraction or genre/era labels for HookTheory are added, or the held-out split/vocab changes
+date: 2026-10-01
+---
+
 # More melody data than BiMMuDa
 
 **Question:** which datasets can add monophonic melodies to BiMMuDa's ~1,156,
