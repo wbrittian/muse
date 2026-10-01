@@ -16,8 +16,8 @@ def train_model(
 ):
     museformer.to(system)
 
-    optimizer = AdamW(museformer.parameters(), lr=1e-4, weight_decay=1e-2)
-    criterion = CrossEntropyLoss(ignore_index=0)
+    optimizer = AdamW(museformer.parameters(), lr=5e-4, weight_decay=1e-2)
+    criterion = CrossEntropyLoss(ignore_index=2)
 
     loader = DataLoader(data_client, batch_size=32, shuffle=True)
 

@@ -5,4 +5,4 @@ __pycache__/
 **/__pycache__/
 **/*.pyc
 **/*.so
-CMakeUserPresets.json
+CMakeUserPresets.jsondata/tokenized_data.json

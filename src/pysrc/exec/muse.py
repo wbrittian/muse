@@ -5,8 +5,9 @@ from typing import Any
 from time import time, sleep
 from pretty_midi import PrettyMIDI
 from pathlib import Path
-from torch import device, triu, LongTensor, ones, argmax
+from torch import device, LongTensor, no_grad, multinomial, softmax, topk, full, inf
 import torch.cuda as cuda
+import torch.backends.mps as mps
 import pygame.midi as midi
 
 from pysrc.data_client.data_client import DataClient
@@ -25,7 +26,7 @@ class Muse:
         self.config_path = Path("model/config.json")
         self.model_path = Path("model/museformer.pt")
 
-        self.system = device("cuda" if cuda.is_available() else "cpu")
+        self.system = device("cuda" if cuda.is_available() else "mps" if mps.is_available() else "cpu")
 
     def _load_model(self, params: dict[str, Any]) -> None:
         self.museformer = PytorchModel(
@@ -140,45 +141,48 @@ class Muse:
         tokens = [feature_to_token(k, v, tok2id) for k, v in zip(features, values)]
         return ([0] + tokens, float(params["bpm"]))
 
-    def _generate(self, input_seq: list[int], max_tokens: int, bpm: float) -> PrettyMIDI:
+    def _generate(
+            self, input_seq: list[int], max_tokens: int, bpm: float,
+            temperature: float = 1.0, top_k: int = 8
+    ) -> PrettyMIDI:
         self.museformer.eval()
-        seed_ids = LongTensor(input_seq).to(self.system)
-
-        output = input_seq
-        for _ in range(max_tokens):
-            context = output[-max_tokens:]
-            cur = LongTensor([context]).to(self.system)
-
-            L = cur.size(1)
-            mask = triu(ones(L, L, device=self.system), diagonal=1).bool()
-
-            if "src_mask" in self.museformer.forward.__code__.co_varnames:
-                logits = self.museformer(cur, src_mask=mask)
-            else:
-                logits = self.museformer(cur)
-
-            next_id = argmax(logits[0, -1]).item()
-            output.append(next_id)
-
-            if next_id == 1:
-                break
-
         id2tok = self.data_client.get_dict(reverse=True)
-        output = [id2tok[i] for i in output]
 
-        return tokens_to_midi(output[12:-1], bpm, int(output[5][6:-1]))
+        # only melody tokens (and EOS) may follow the control prefix
+        allowed = full((self.data_client.vocab_size(),), -inf, device=self.system)
+        for i, tok in id2tok.items():
+            if tok == "<EOS>" or tok.startswith(("<NOTE_", "<PITCH_", "<REST_")):
+                allowed[i] = 0.0
+
+        output = list(input_seq)
+        with no_grad():
+            while len(output) < max_tokens:
+                cur = LongTensor([output]).to(self.system)
+                logits = self.museformer(cur)[0, -1] / temperature + allowed
+
+                vals, idxs = topk(logits, top_k)
+                next_id = idxs[multinomial(softmax(vals, dim=-1), 1)].item()
+                if next_id == 1:
+                    break
+                output.append(next_id)
+
+        output = [id2tok[i] for i in output]
+        return tokens_to_midi(output[12:], bpm, int(output[4][7:-1]))
 
 
     def _send_to_fl(self, pm: PrettyMIDI) -> None:
         midi.init()
-        count = midi.get_count()
         port = midi.get_default_output_id()
-        out = midi.Output(port, latency=0)
-
-        for pid in range(count):
-            _, name, _, _, _ = midi.get_device_info(pid)
-            if name.decode() == "IAC Driver MUSE":
+        for pid in range(midi.get_count()):
+            _, name, _, is_output, _ = midi.get_device_info(pid)
+            if is_output and name.decode() == "IAC Driver MUSE":
                 port = pid
+
+        if port == -1:
+            print("no MIDI output found, skipping FL Studio")
+            midi.quit()
+            return
+        out = midi.Output(port, latency=0)
 
         events = []
         for inst in pm.instruments:
