@@ -6,4 +6,7 @@ __pycache__/
 **/*.pyc
 **/*.so
 CMakeUserPresets.json
-data/tokenized_data.json
+data/tokenized_*.json
+
+experiments/
+data/raw/

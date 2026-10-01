@@ -1,22 +1,17 @@
-from typing import Any
 from json import dump
 
-def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
-    # collect unique types
-    time_signatures = set()
-    eras = set()
-    for melody in melody_data:
-        ts = melody["TS"]
-        if ts not in time_signatures:
-            time_signatures.add(ts)
+# The vocabulary is static so token ids do not depend on which melodies were
+# loaded. Ids 0-419 are the original BiMMuDa vocabulary; tokens added later go
+# at the END so existing ids never move.
+TIME_SIGNATURES = ["12/8", "3/4", "4/4", "6/8", "9/8"]
+ERAS = ["1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
+GENRES = ["Pop", "Rock", "Funk/Soul", "R&B", "Hip-hop", "Other"]
 
-        era = melody["ERA"]
-        if era not in eras:
-            eras.add(era)
+# labels for sources that do not annotate genre or era
+APPENDED = ["<GENRE_Unknown>", "<ERA_Unknown>"]
 
-    time_signatures = sorted(time_signatures)
-    eras = sorted(eras, key=lambda x: int(x[:4]))
 
+def generate_tokens() -> dict[int, str]:
     # tokens
     id2tok = {}
 
@@ -31,7 +26,7 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
         i += 1
     
     # TS
-    for ts in time_signatures:
+    for ts in TIME_SIGNATURES:
         id2tok[i] = f"<TS_{ts}>"
         i += 1
 
@@ -53,13 +48,12 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
         i += 1
 
     # GENRE
-    genres = ["Pop", "Rock", "Funk/Soul", "R&B", "Hip-hop", "Other"]
-    for genre in genres:
+    for genre in GENRES:
         id2tok[i] = f"<GENRE_{genre}>"
         i += 1
 
     # ERA
-    for era in eras:
+    for era in ERAS:
         id2tok[i] = f"<ERA_{era}>"
         i += 1
 
@@ -91,6 +85,10 @@ def generate_tokens(melody_data: list[dict[str, Any]]) -> dict[int, str]:
     # RANGE
     for note_range in ["narrow", "moderate", "wide"]:
         id2tok[i] = f"<RANGE_{note_range}>"
+        i += 1
+
+    for tok in APPENDED:
+        id2tok[i] = tok
         i += 1
 
     id2tok = dict(sorted(id2tok.items()))

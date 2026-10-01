@@ -121,7 +121,11 @@ std::vector<int> Museformer::generate(
     float temperature,
     const std::vector<int>& allowed_tokens,
     std::optional<uint64_t> seed,
-    int eos_token
+    int eos_token,
+    const std::vector<int>& rest_divs,
+    const std::vector<int>& note_divs,
+    int eos_after_divs,
+    int stop_at_divs
 ) {
     if (input_tokens.empty()) throw std::invalid_argument("input_tokens is empty");
     if (top_k < 1) throw std::invalid_argument("top_k must be at least 1");
@@ -137,15 +141,38 @@ std::vector<int> Museformer::generate(
     for (int t : candidates)
         if (t < 0 || t >= vocab_size) throw std::out_of_range("allowed token out of range: " + std::to_string(t));
 
+    bool guarded = eos_after_divs >= 0 || stop_at_divs >= 0;
+    if (guarded && ((int)rest_divs.size() != vocab_size || (int)note_divs.size() != vocab_size))
+        throw std::invalid_argument("rest_divs and note_divs must have vocab_size entries");
+    std::vector<int> no_eos;
+    for (int t : candidates)
+        if (t != eos_token) no_eos.push_back(t);
+    if (eos_after_divs >= 0 && no_eos.empty())
+        throw std::invalid_argument("allowed tokens hold nothing but eos_token");
+
     std::vector<int> output = input_tokens;
     if ((int)output.size() >= max_len) return output;
 
+    int elapsed = 0, pending = 0;
     Matrix x = decode(output, 0);
     RowVector logits = (x.bottomRows(1) * W_proj.transpose()) + b_proj;
     while ((int)output.size() < max_len) {
-        int next_token = sample(logits, top_k, temperature, candidates);
+        if (stop_at_divs >= 0 && elapsed >= stop_at_divs) break;
+        const auto& pool = (eos_after_divs >= 0 && elapsed < eos_after_divs) ? no_eos : candidates;
+
+        int next_token = sample(logits, top_k, temperature, pool);
         if (next_token == eos_token) break;
         output.push_back(next_token);
+        if (guarded) {
+            if (rest_divs[next_token]) {
+                elapsed += rest_divs[next_token];
+            } else if (note_divs[next_token]) {
+                pending = note_divs[next_token];
+            } else {
+                elapsed += pending;
+                pending = 0;
+            }
+        }
         if ((int)output.size() == max_len) break;
 
         x = decode({next_token}, output.size() - 1);
