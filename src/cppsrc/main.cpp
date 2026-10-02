@@ -25,5 +25,9 @@ PYBIND11_MODULE(museformer, m) {
              py::arg("temperature") = 1.0f,
              py::arg("allowed_tokens") = std::vector<int>{},
              py::arg("seed") = py::none(),
-             py::arg("eos_token") = 1);
+             py::arg("eos_token") = 1,
+             py::arg("rest_divs") = std::vector<int>{},
+             py::arg("note_divs") = std::vector<int>{},
+             py::arg("eos_after_divs") = -1,
+             py::arg("stop_at_divs") = -1);
 }

@@ -1,8 +1,13 @@
 {
-  "d_model": 128,
-  "num_heads": 4,
-  "num_layers": 2,
-  "dim_ff": 512,
+  "d_model": 256,
+  "num_heads": 8,
+  "num_layers": 4,
+  "dim_ff": 1024,
   "p_drop": 0.1,
-  "num_epochs": 50
+  "num_epochs": 60,
+  "sources": [
+    "bimmuda",
+    "pop909",
+    "hooktheory"
+  ]
 }

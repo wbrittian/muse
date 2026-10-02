@@ -5,15 +5,16 @@ from typing import Any
 from time import time, sleep
 from pretty_midi import PrettyMIDI
 from pathlib import Path
-from torch import device, LongTensor, no_grad, multinomial, softmax, topk, full, inf
+from torch import device
 import torch.cuda as cuda
 import torch.backends.mps as mps
 import pygame.midi as midi
 
 from pysrc.data_client.data_client import DataClient
-from pysrc.data_client.tokenizer import feature_to_token
+from pysrc.data_client.tokenizer import bar_divs, feature_to_token
 from pysrc.model.pytorch_model import PytorchModel
 from pysrc.model.train_model import train_model
+from pysrc.model.sample import length_guard, melody_token_ids, sample_tokens
 from pysrc.exec.params import get_params, load_params
 from pysrc.exec.prompt import parse_prompt
 from pysrc.exec.utils import get_input, tokens_to_midi
@@ -69,8 +70,10 @@ class Muse:
         self.cpp_model = model
 
     def _train_model(self, params: dict[str, Any]) -> None:
-        print("loading data...")
+        # sources: None trains on BiMMuDa plus every extra source downloaded into data/raw
+        self.data_client = DataClient(params.get("sources"))
         self.data_client.load()
+        train, val = self.data_client.split()
         self.museformer = PytorchModel(
             self.data_client.vocab_size(), 
             self.data_client.max_seq_len(),
@@ -78,7 +81,7 @@ class Muse:
         )
         
         print("training model...")
-        train_model(self.museformer, self.data_client, self.system, str(self.model_path), params["num_epochs"])
+        train_model(self.museformer, train, self.system, str(self.model_path), params["num_epochs"], val_data=val)
         self._load_cpp_model(params)
         print("model loaded")
 
@@ -175,33 +178,21 @@ class Muse:
 
     def _generate(
             self, input_seq: list[int], max_tokens: int, bpm: float,
-            temperature: float = 1.0, top_k: int = 8
+            temperature: float = 1.0, top_k: int = 16
     ) -> PrettyMIDI:
-        self.museformer.eval()
         id2tok = self.data_client.get_dict(reverse=True)
+        ts, bars = id2tok[input_seq[2]][4:-1], int(id2tok[input_seq[3]][6:-1])
 
-        # only melody tokens (and EOS) may follow the control prefix
-        allowed_ids = [
-            i for i, tok in id2tok.items()
-            if tok == "<EOS>" or tok.startswith(("<NOTE_", "<PITCH_", "<REST_"))
-        ]
-
-        output = list(input_seq)
         if self.cpp_model is not None:
-            output = self.cpp_model.generate(output, max_tokens, top_k, temperature, allowed_ids)
+            guard = length_guard(id2tok, bar_divs(ts), bars)
+            output = self.cpp_model.generate(
+                input_seq, max_tokens, top_k, temperature, melody_token_ids(id2tok), **guard
+            )
         else:
-            allowed = full((self.data_client.vocab_size(),), -inf, device=self.system)
-            allowed[allowed_ids] = 0.0
-            with no_grad():
-                while len(output) < max_tokens:
-                    cur = LongTensor([output]).to(self.system)
-                    logits = self.museformer(cur)[0, -1] / temperature + allowed
-
-                    vals, idxs = topk(logits, top_k)
-                    next_id = idxs[multinomial(softmax(vals, dim=-1), 1)].item()
-                    if next_id == 1:
-                        break
-                    output.append(next_id)
+            output = sample_tokens(
+                self.museformer, input_seq, id2tok, self.system, max_tokens, temperature, top_k,
+                bar_divs=bar_divs(ts), bars=bars
+            )
 
         output = [id2tok[i] for i in output]
         return tokens_to_midi(output[12:], bpm, int(output[4][7:-1]))
@@ -244,7 +235,7 @@ class Muse:
         midi.quit()
 
     def run(self) -> None:
-        self.data_client.load()
+        self.data_client.load_vocab()
         if Path.exists(self.config_path):
             params = load_params(str(self.config_path))
             if Path.exists(self.model_path):

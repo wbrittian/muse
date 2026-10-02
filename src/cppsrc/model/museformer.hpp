@@ -42,7 +42,11 @@ public:
 
     Matrix forward(const std::vector<int>& input_tokens);
 
-    // top-k sampling over allowed_tokens (all if empty); stops before eos_token or at max_len
+    // top-k sampling over allowed_tokens (all if empty); stops before eos_token or at max_len.
+    // Optional length guard: rest_divs/note_divs give each token's length in divisions
+    // (a NOTE's counts once the next token, its PITCH, arrives). eos_token is masked
+    // while elapsed < eos_after_divs, and generation stops once elapsed >= stop_at_divs
+    // (either < 0 disables it).
     std::vector<int> generate(
         const std::vector<int>& input_tokens,
         int max_len,
@@ -50,7 +54,11 @@ public:
         float temperature = 1.0f,
         const std::vector<int>& allowed_tokens = {},
         std::optional<uint64_t> seed = std::nullopt,
-        int eos_token = 1
+        int eos_token = 1,
+        const std::vector<int>& rest_divs = {},
+        const std::vector<int>& note_divs = {},
+        int eos_after_divs = -1,
+        int stop_at_divs = -1
     );
 
 private:
